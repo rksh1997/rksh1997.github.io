@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Rashad Kokash]]></title><description><![CDATA[Full-stack Web Developer & DevOps Enthusiast]]></description><link>https://FrankenSteinxD.github.io</link><generator>GatsbyJS</generator><lastBuildDate>Wed, 02 Oct 2019 18:50:57 GMT</lastBuildDate><item><title><![CDATA[Everything you need to know about wc command in Linux]]></title><description><![CDATA[wc stands for word count. It’s used to count bytes, lines, characters and words in files. Usage . wc command accepts optional list of…]]></description><link>https://FrankenSteinxD.github.io/every-thing-wc/</link><guid isPermaLink="false">https://FrankenSteinxD.github.io/every-thing-wc/</guid><pubDate>Mon, 02 Sep 2019 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;&lt;strong&gt;wc&lt;/strong&gt; stands for &lt;strong&gt;word count&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;It’s used to count bytes, lines, characters and words in files.&lt;/p&gt;
+&lt;h1&gt;Usage&lt;/h1&gt;
+&lt;p&gt;&lt;code class=&quot;language-text&quot;&gt;wc [option]... [file]...&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;wc&lt;/strong&gt; command accepts optional list of options and an optional list of files.&lt;/p&gt;
+&lt;p&gt;If no options where specified, &lt;strong&gt;wc&lt;/strong&gt; will print new line, word and byte counts for the specified files.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Example&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;Suppose we have a file called &lt;strong&gt;text.txt&lt;/strong&gt; which contains the following text:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;txt&quot;&gt;&lt;pre class=&quot;language-txt&quot;&gt;&lt;code class=&quot;language-txt&quot;&gt;hello world&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;By passing &lt;strong&gt;text.txt&lt;/strong&gt; to &lt;strong&gt;wc&lt;/strong&gt; we get:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; text.txt
+&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;  &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;12&lt;/span&gt; text.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;which means that we have 1 new line (\n or \n\r), 2 words and 12 bytes in &lt;strong&gt;text.txt&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;If no files where specified to &lt;strong&gt;wc&lt;/strong&gt;, it will take standard input as its input. You type what you want and then press &lt;code class=&quot;language-text&quot;&gt;Ctrl + D&lt;/code&gt; twice to end input.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Example&lt;/strong&gt;:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt;
+hello, world
+my name is Rashad
+  &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt;       &lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt;      &lt;span class=&quot;token number&quot;&gt;31&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;We have 2 new lines, 6 words and 31 bytes.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Note that there’s new line (I pressed Enter) after &lt;code class=&quot;language-text&quot;&gt;Rashad&lt;/code&gt; and then I pressed &lt;code class=&quot;language-text&quot;&gt;Ctrl + D&lt;/code&gt;.&lt;br&gt;If I didn’t press Enter wc output would be like &lt;code class=&quot;language-text&quot;&gt;1 6 30&lt;/code&gt;.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h1&gt;Options&lt;/h1&gt;
+&lt;p&gt;You could customize &lt;strong&gt;wc&lt;/strong&gt; output by passing it one or more of the following options:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;-c&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;--bytes&lt;/code&gt; which is used to count byte of input.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;If we have a text &lt;strong&gt;text.txt&lt;/strong&gt; file that has the following text:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;txt&quot;&gt;&lt;pre class=&quot;language-txt&quot;&gt;&lt;code class=&quot;language-txt&quot;&gt;I love pizza&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; -c text.txt
+&lt;span class=&quot;token number&quot;&gt;13&lt;/span&gt; text.txt
+
+$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; --bytes text.txt
+&lt;span class=&quot;token number&quot;&gt;13&lt;/span&gt; text.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;-m&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;--chars&lt;/code&gt; which is used to count characters of input.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; -m text.txt
+&lt;span class=&quot;token number&quot;&gt;13&lt;/span&gt; text.txt
+
+$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; --chars text.txt
+&lt;span class=&quot;token number&quot;&gt;13&lt;/span&gt; text.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;There’s no difference between &lt;code class=&quot;language-text&quot;&gt;-m&lt;/code&gt; and &lt;code class=&quot;language-text&quot;&gt;-c&lt;/code&gt; if the file contains only &lt;strong&gt;ASCII&lt;/strong&gt; characters because each &lt;strong&gt;ASCII&lt;/strong&gt; character will take only one byte.&lt;/p&gt;
+&lt;p&gt;But they differ when there’s &lt;strong&gt;Unicode&lt;/strong&gt; characters in the file, some characters might take 2 or 4 bytes.&lt;/p&gt;
+&lt;p&gt;Read the example below in the summary.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;-l&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;--lines&lt;/code&gt; which is used to count new lines of input.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;If we have a text &lt;strong&gt;text.txt&lt;/strong&gt; file that has the following text:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;txt&quot;&gt;&lt;pre class=&quot;language-txt&quot;&gt;&lt;code class=&quot;language-txt&quot;&gt;hello
+world
+this
+is
+new
+line&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; -l text.txt
+&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt; text.txt
+
+$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; --lines text.txt
+&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt; text.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;-w&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;--words&lt;/code&gt; which is used to count words of input.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;If we have a text &lt;strong&gt;text.txt&lt;/strong&gt; file that has the following text:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;txt&quot;&gt;&lt;pre class=&quot;language-txt&quot;&gt;&lt;code class=&quot;language-txt&quot;&gt;Wassup ma brothers from other mothers&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; -w text.txt
+&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt; text.txt
+
+$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; --words text.txt
+&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt; text.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;-L&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;--max-line-length&lt;/code&gt; which is used to display the length of longest line in input. &lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;If we have a text &lt;strong&gt;text.txt&lt;/strong&gt; file that has the following text:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;txt&quot;&gt;&lt;pre class=&quot;language-txt&quot;&gt;&lt;code class=&quot;language-txt&quot;&gt;123
+123456789
+12345&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; -L text.txt
+&lt;span class=&quot;token number&quot;&gt;9&lt;/span&gt; text.txt
+
+$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; --max-line-length text.txt
+&lt;span class=&quot;token number&quot;&gt;9&lt;/span&gt; text.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;blockquote&gt;
+&lt;p&gt;You can pass more than one option like &lt;code class=&quot;language-text&quot;&gt;$ wc -lw text.txt&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;$ wc -l -w text.txt&lt;/code&gt;.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;You can pass more than one file or a pattern like &lt;code class=&quot;language-text&quot;&gt;$ wc file1 file2&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;$ wc *.txt&lt;/code&gt;.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;wc&lt;/strong&gt; will always print new lines count first, then words then bytes then characters no matter how you order passed options.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h1&gt;Summary&lt;/h1&gt;
+&lt;h2&gt;How to count words of a file in Linux?&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;wc -w filename&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;wc --words filename&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;How to count new lines of a file in Linux?&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;wc -l filename&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;wc --lines filename&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;How to count characters of a file in Linux?&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;wc -m filename&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;wc -chars filename&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;How to display longest line length of a file in Linux?&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;$ wc -L filename&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;$ wc --max-line-length filename&lt;/code&gt; &lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;What is the difference between -c and -m options of wc in Linux?&lt;/h2&gt;
+&lt;h2&gt;What is the difference between bytes count and characters count?&lt;/h2&gt;
+&lt;p&gt;There’s no difference between &lt;code class=&quot;language-text&quot;&gt;-m&lt;/code&gt; and &lt;code class=&quot;language-text&quot;&gt;-c&lt;/code&gt; if the file contains only &lt;strong&gt;ASCII&lt;/strong&gt; characters because each &lt;strong&gt;ASCII&lt;/strong&gt; character will take only one byte.&lt;/p&gt;
+&lt;p&gt;But they differ when there’s &lt;strong&gt;Unicode&lt;/strong&gt; characters in the file, some characters might take 2 or 4 bytes.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;For example&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;Suppose we have a file &lt;strong&gt;text.txt&lt;/strong&gt; with the content of:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;123456789
+©¥¢&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;it has 3 non-ascii characters &lt;code class=&quot;language-text&quot;&gt;©&lt;/code&gt;, &lt;code class=&quot;language-text&quot;&gt;¥&lt;/code&gt; and &lt;code class=&quot;language-text&quot;&gt;¢&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; --chars text.txt 
+&lt;span class=&quot;token number&quot;&gt;14&lt;/span&gt; text.txt
+
+$ &lt;span class=&quot;token function&quot;&gt;wc&lt;/span&gt; --bytes text.txt 
+&lt;span class=&quot;token number&quot;&gt;17&lt;/span&gt; text.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;That means each of the three non-ascii characters took 2 bytes.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;14 comes from 9 numbers, 3 non-ascii characters and 2 new lines.&lt;/p&gt;
+&lt;/blockquote&gt;</content:encoded></item><item><title><![CDATA[Hello World]]></title><link>https://FrankenSteinxD.github.io/hello-world/</link><guid isPermaLink="false">https://FrankenSteinxD.github.io/hello-world/</guid><pubDate>Sun, 01 Sep 2019 00:00:00 GMT</pubDate><content:encoded></content:encoded></item></channel></rss>
