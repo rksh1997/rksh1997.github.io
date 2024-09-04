@@ -1,162 +1,855 @@
-<!DOCTYPE html><html lang="ar" class="scroll-smooth astro-sckkx6r4" dir="rtl"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="canonical" href="https://rashadkokash.com/posts/nodejs-event-loop/"><meta name="generator" content="Astro v4.15.1"><!-- General Meta Tags --><title>كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش</title><meta name="title" content="كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش"><meta name="description" content="كيف تعمل Nodejs من الداخل وماذا يعني (Non-Blocking I/O) وما الذي يجعل Nodejs من الخيارات الأمثل لبناء واجهات الويب البرمجية (APIs)"><meta name="author" content="Rashad Kokash"><link rel="sitemap" href="/sitemap-index.xml"><!-- Open Graph / Facebook --><meta property="og:title" content="كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش"><meta property="og:description" content="كيف تعمل Nodejs من الداخل وماذا يعني (Non-Blocking I/O) وما الذي يجعل Nodejs من الخيارات الأمثل لبناء واجهات الويب البرمجية (APIs)"><meta property="og:url" content="https://rashadkokash.com/posts/nodejs-event-loop/"><meta property="og:image" content="https://rashadkokash.com/posts/%D9%83%D9%8A%D9%81-%D8%AA%D8%B3%D8%AA%D8%B7%D9%8A%D8%B9-nodejs-%D8%AA%D8%AE%D8%AF%D9%8A%D9%85-%D8%A2%D9%84%D8%A7%D9%81-%D8%A7%D9%84%D8%B7%D9%84%D8%A8%D8%A7%D8%AA-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF-%D9%88%D9%85%D8%A7-%D9%87%D9%88-event-loop%D8%9F.png"><!-- Article Published/Modified time --><meta property="article:published_time" content="2024-09-03T19:17:31.000Z"><!-- Twitter --><meta property="twitter:card" content="summary_large_image"><meta property="twitter:url" content="https://rashadkokash.com/posts/nodejs-event-loop/"><meta property="twitter:title" content="كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش"><meta property="twitter:description" content="كيف تعمل Nodejs من الداخل وماذا يعني (Non-Blocking I/O) وما الذي يجعل Nodejs من الخيارات الأمثل لبناء واجهات الويب البرمجية (APIs)"><meta property="twitter:image" content="https://rashadkokash.com/posts/%D9%83%D9%8A%D9%81-%D8%AA%D8%B3%D8%AA%D8%B7%D9%8A%D8%B9-nodejs-%D8%AA%D8%AE%D8%AF%D9%8A%D9%85-%D8%A2%D9%84%D8%A7%D9%81-%D8%A7%D9%84%D8%B7%D9%84%D8%A8%D8%A7%D8%AA-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF-%D9%88%D9%85%D8%A7-%D9%87%D9%88-event-loop%D8%9F.png"><!-- Google JSON-LD Structured data --><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش","image":"https://rashadkokash.com/posts/%D9%83%D9%8A%D9%81-%D8%AA%D8%B3%D8%AA%D8%B7%D9%8A%D8%B9-nodejs-%D8%AA%D8%AE%D8%AF%D9%8A%D9%85-%D8%A2%D9%84%D8%A7%D9%81-%D8%A7%D9%84%D8%B7%D9%84%D8%A8%D8%A7%D8%AA-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF-%D9%88%D9%85%D8%A7-%D9%87%D9%88-event-loop%D8%9F.png","datePublished":"2024-09-03T19:17:31.000Z","author":[{"@type":"Person","name":"Rashad Kokash","url":"https://rashadkokash.com/"}]}</script><!-- Google Font --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400..600&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inconsolata&family=Source+Code+Pro&display=swap" rel="stylesheet"><meta name="theme-color" content=""><meta name="astro-view-transitions-enabled" content="true"><meta name="astro-view-transitions-fallback" content="animate"><script src="/toggle-theme.js"></script><style>.breadcrumb:where(.astro-ilhxcym7){margin-left:auto;margin-right:auto;margin-bottom:.25rem;margin-top:2rem;width:100%;max-width:48rem;padding-left:1rem;padding-right:1rem}.breadcrumb:where(.astro-ilhxcym7) ul:where(.astro-ilhxcym7) li:where(.astro-ilhxcym7){display:inline}.breadcrumb:where(.astro-ilhxcym7) ul:where(.astro-ilhxcym7) li:where(.astro-ilhxcym7) a:where(.astro-ilhxcym7){text-transform:capitalize;opacity:.7}.breadcrumb:where(.astro-ilhxcym7) ul:where(.astro-ilhxcym7) li:where(.astro-ilhxcym7) span:where(.astro-ilhxcym7){opacity:.7}.breadcrumb:where(.astro-ilhxcym7) ul:where(.astro-ilhxcym7) li:where(.astro-ilhxcym7):not(:last-child) a:where(.astro-ilhxcym7):hover{opacity:1}
-</style>
-<link rel="stylesheet" href="/_astro/about.CExf5qeP.css">
-<style>#main-content:where(.astro-hsp6otuf){margin-left:auto;margin-right:auto;width:100%;max-width:48rem;padding-left:1rem;padding-right:1rem;padding-bottom:1rem}#main-content:where(.astro-hsp6otuf) h1:where(.astro-hsp6otuf){font-size:1.5rem;line-height:2rem;font-weight:600}@media (min-width: 640px){#main-content:where(.astro-hsp6otuf) h1:where(.astro-hsp6otuf){font-size:1.875rem;line-height:2.25rem}}#main-content:where(.astro-hsp6otuf) p:where(.astro-hsp6otuf){margin-bottom:1.5rem;margin-top:.5rem;font-style:italic}
-a:where(.astro-blwjyjpt){position:relative;text-decoration-line:underline;text-decoration-style:dashed}a:where(.astro-blwjyjpt):hover{top:-.125rem;--tw-text-opacity: 1;color:rgba(var(--color-accent),var(--tw-text-opacity))}a:where(.astro-blwjyjpt):focus-visible{padding:.25rem}a:where(.astro-blwjyjpt) svg:where(.astro-blwjyjpt){margin-right:-.25rem;height:1.5rem;width:1.5rem;--tw-scale-x: .95;--tw-scale-y: .95;transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));--tw-text-opacity: 1;color:rgba(var(--color-text-base),var(--tw-text-opacity));opacity:.8}.group:where(.astro-blwjyjpt):hover a:where(.astro-blwjyjpt) svg:where(.astro-blwjyjpt){fill:rgb(var(--color-accent))}
-.pagination-wrapper:where(.astro-d776pwuy){margin-bottom:2rem;margin-top:auto;display:flex;justify-content:center}.disabled:where(.astro-d776pwuy){pointer-events:none;-webkit-user-select:none;-moz-user-select:none;user-select:none;opacity:.5}.disabled:where(.astro-d776pwuy):hover{--tw-text-opacity: 1;color:rgba(var(--color-text-base),var(--tw-text-opacity))}.group:where(.astro-d776pwuy):hover .disabled:where(.astro-d776pwuy){fill:rgb(var(--color-text-base))}.group:where(.astro-d776pwuy):hover .disabled-svg:where(.astro-d776pwuy){fill:rgb(var(--color-text-base))!important}
-@keyframes astroFadeInOut{0%{opacity:1}to{opacity:0}}@keyframes astroFadeIn{0%{opacity:0}}@keyframes astroFadeOut{to{opacity:0}}@keyframes astroSlideFromRight{0%{transform:translate(100%)}}@keyframes astroSlideFromLeft{0%{transform:translate(-100%)}}@keyframes astroSlideToRight{to{transform:translate(100%)}}@keyframes astroSlideToLeft{to{transform:translate(-100%)}}@media (prefers-reduced-motion){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}[data-astro-transition-scope]{animation:none!important}}
-.social-icons:where(.astro-wkojbtzc){display:flex;flex-direction:column;flex-wrap:wrap;align-items:center;justify-content:center;gap:.25rem}@media (min-width: 640px){.social-icons:where(.astro-wkojbtzc){align-items:flex-start}}.link-button:where(.astro-wkojbtzc){--tw-scale-x: .9;--tw-scale-y: .9;transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));padding:.5rem}.link-button:where(.astro-wkojbtzc):hover{--tw-rotate: 6deg;transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@media (min-width: 640px){.link-button:where(.astro-wkojbtzc){padding:.25rem}}main:where(.astro-vj4tpspi){margin-left:auto;margin-right:auto;width:100%;max-width:48rem;padding-left:1rem;padding-right:1rem;padding-bottom:3rem}.post-title:where(.astro-vj4tpspi){font-size:1.5rem;line-height:2rem;font-weight:600;--tw-text-opacity: 1;color:rgba(var(--color-accent),var(--tw-text-opacity))}
-</style><script type="module" src="/_astro/hoisted.BvA1nkMO.js"></script><style>[data-astro-transition-scope="astro-plk3gbjq-1"] { view-transition-name: \643\64A\641-\62A\633\62A\637\64A\639-nodejs-\62A\62E\62F\64A\645-\622\644\627\641-\627\644\637\644\628\627\62A-\639\644\649-thread-\648\627\62D\62F-\648\645\627-\647\648-event-loop\61F; }@layer astro { ::view-transition-old(\643\64A\641-\62A\633\62A\637\64A\639-nodejs-\62A\62E\62F\64A\645-\622\644\627\641-\627\644\637\644\628\627\62A-\639\644\649-thread-\648\627\62D\62F-\648\645\627-\647\648-event-loop\61F) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }::view-transition-new(\643\64A\641-\62A\633\62A\637\64A\639-nodejs-\62A\62E\62F\64A\645-\622\644\627\641-\627\644\637\644\628\627\62A-\639\644\649-thread-\648\627\62D\62F-\648\645\627-\647\648-event-loop\61F) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }[data-astro-transition=back]::view-transition-old(\643\64A\641-\62A\633\62A\637\64A\639-nodejs-\62A\62E\62F\64A\645-\622\644\627\641-\627\644\637\644\628\627\62A-\639\644\649-thread-\648\627\62D\62F-\648\645\627-\647\648-event-loop\61F) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition=back]::view-transition-new(\643\64A\641-\62A\633\62A\637\64A\639-nodejs-\62A\62E\62F\64A\645-\622\644\627\641-\627\644\637\644\628\627\62A-\639\644\649-thread-\648\627\62D\62F-\648\645\627-\647\648-event-loop\61F) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; } }[data-astro-transition-fallback="old"] [data-astro-transition-scope="astro-plk3gbjq-1"],
-			[data-astro-transition-fallback="old"][data-astro-transition-scope="astro-plk3gbjq-1"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition-fallback="new"] [data-astro-transition-scope="astro-plk3gbjq-1"],
-			[data-astro-transition-fallback="new"][data-astro-transition-scope="astro-plk3gbjq-1"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }[data-astro-transition=back][data-astro-transition-fallback="old"] [data-astro-transition-scope="astro-plk3gbjq-1"],
-			[data-astro-transition=back][data-astro-transition-fallback="old"][data-astro-transition-scope="astro-plk3gbjq-1"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition=back][data-astro-transition-fallback="new"] [data-astro-transition-scope="astro-plk3gbjq-1"],
-			[data-astro-transition=back][data-astro-transition-fallback="new"][data-astro-transition-scope="astro-plk3gbjq-1"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }</style><style>[data-astro-transition-scope="astro-36ssibgs-2"] { view-transition-name: nodejs; }@layer astro { ::view-transition-old(nodejs) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }::view-transition-new(nodejs) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }[data-astro-transition=back]::view-transition-old(nodejs) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition=back]::view-transition-new(nodejs) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; } }[data-astro-transition-fallback="old"] [data-astro-transition-scope="astro-36ssibgs-2"],
-			[data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-2"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition-fallback="new"] [data-astro-transition-scope="astro-36ssibgs-2"],
-			[data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-2"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }[data-astro-transition=back][data-astro-transition-fallback="old"] [data-astro-transition-scope="astro-36ssibgs-2"],
-			[data-astro-transition=back][data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-2"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition=back][data-astro-transition-fallback="new"] [data-astro-transition-scope="astro-36ssibgs-2"],
-			[data-astro-transition=back][data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-2"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }</style><style>[data-astro-transition-scope="astro-36ssibgs-3"] { view-transition-name: javascript; }@layer astro { ::view-transition-old(javascript) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }::view-transition-new(javascript) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }[data-astro-transition=back]::view-transition-old(javascript) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition=back]::view-transition-new(javascript) { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; } }[data-astro-transition-fallback="old"] [data-astro-transition-scope="astro-36ssibgs-3"],
-			[data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-3"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition-fallback="new"] [data-astro-transition-scope="astro-36ssibgs-3"],
-			[data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-3"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }[data-astro-transition=back][data-astro-transition-fallback="old"] [data-astro-transition-scope="astro-36ssibgs-3"],
-			[data-astro-transition=back][data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-3"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeOut; }[data-astro-transition=back][data-astro-transition-fallback="new"] [data-astro-transition-scope="astro-36ssibgs-3"],
-			[data-astro-transition=back][data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-3"] { 
-	animation-duration: 180ms;
-	animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-	animation-fill-mode: both;
-	animation-name: astroFadeIn; }</style></head> <body class="astro-sckkx6r4">  <header class="astro-3ef6ksr2"> <a id="skip-to-content" href="#main-content" class="astro-3ef6ksr2">Skip to content</a> <div class="nav-container astro-3ef6ksr2"> <div class="top-nav-wrap astro-3ef6ksr2"> <a href="/" class="logo whitespace-nowrap astro-3ef6ksr2"> رشاد كوكش </a> <nav id="nav-menu" class="astro-3ef6ksr2"> <button class="hamburger-menu focus-outline astro-3ef6ksr2" aria-label="Open Menu" aria-expanded="false" aria-controls="menu-items"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="menu-icon astro-3ef6ksr2"> <line x1="7" y1="12" x2="21" y2="12" class="line astro-3ef6ksr2"></line> <line x1="3" y1="6" x2="21" y2="6" class="line astro-3ef6ksr2"></line> <line x1="12" y1="18" x2="21" y2="18" class="line astro-3ef6ksr2"></line> <line x1="18" y1="6" x2="6" y2="18" class="close astro-3ef6ksr2"></line> <line x1="6" y1="6" x2="18" y2="18" class="close astro-3ef6ksr2"></line> </svg> </button> <ul id="menu-items" class="display-none sm:flex astro-3ef6ksr2"> <li class="astro-3ef6ksr2"> <a href="/posts/" class=" astro-3ef6ksr2">
-المقالات
-</a> </li> <li class="astro-3ef6ksr2"> <a href="/tags/" class=" astro-3ef6ksr2">
-الوسوم
-</a> </li> <li class="astro-3ef6ksr2"> <a href="/about/" class=" astro-3ef6ksr2">
-من أنا
-</a> </li> <li class="astro-3ef6ksr2"> <a href="/search/" class="group inline-block hover:text-skin-accent focus-outline p-3 sm:p-1  flex astro-3ef6ksr2" aria-label="search" title="Search"> <svg xmlns="http://www.w3.org/2000/svg" class="scale-125 sm:scale-100 astro-3ef6ksr2"><path d="M19.023 16.977a35.13 35.13 0 0 1-1.367-1.384c-.372-.378-.596-.653-.596-.653l-2.8-1.337A6.962 6.962 0 0 0 16 9c0-3.859-3.14-7-7-7S2 5.141 2 9s3.14 7 7 7c1.763 0 3.37-.66 4.603-1.739l1.337 2.8s.275.224.653.596c.387.363.896.854 1.384 1.367l1.358 1.392.604.646 2.121-2.121-.646-.604c-.379-.372-.885-.866-1.391-1.36zM9 14c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z" class="astro-3ef6ksr2"></path> </svg> <span class="sr-only astro-3ef6ksr2">البحث</span> </a> </li> <li class="astro-3ef6ksr2"> <button id="theme-btn" class="focus-outline astro-3ef6ksr2" title="Toggles light & dark" aria-label="auto" aria-live="polite"> <svg xmlns="http://www.w3.org/2000/svg" id="moon-svg" class="astro-3ef6ksr2"> <path d="M20.742 13.045a8.088 8.088 0 0 1-2.077.271c-2.135 0-4.14-.83-5.646-2.336a8.025 8.025 0 0 1-2.064-7.723A1 1 0 0 0 9.73 2.034a10.014 10.014 0 0 0-4.489 2.582c-3.898 3.898-3.898 10.243 0 14.143a9.937 9.937 0 0 0 7.072 2.93 9.93 9.93 0 0 0 7.07-2.929 10.007 10.007 0 0 0 2.583-4.491 1.001 1.001 0 0 0-1.224-1.224zm-2.772 4.301a7.947 7.947 0 0 1-5.656 2.343 7.953 7.953 0 0 1-5.658-2.344c-3.118-3.119-3.118-8.195 0-11.314a7.923 7.923 0 0 1 2.06-1.483 10.027 10.027 0 0 0 2.89 7.848 9.972 9.972 0 0 0 7.848 2.891 8.036 8.036 0 0 1-1.484 2.059z" class="astro-3ef6ksr2"></path> </svg> <svg xmlns="http://www.w3.org/2000/svg" id="sun-svg" class="astro-3ef6ksr2"> <path d="M6.993 12c0 2.761 2.246 5.007 5.007 5.007s5.007-2.246 5.007-5.007S14.761 6.993 12 6.993 6.993 9.239 6.993 12zM12 8.993c1.658 0 3.007 1.349 3.007 3.007S13.658 15.007 12 15.007 8.993 13.658 8.993 12 10.342 8.993 12 8.993zM10.998 19h2v3h-2zm0-17h2v3h-2zm-9 9h3v2h-3zm17 0h3v2h-3zM4.219 18.363l2.12-2.122 1.415 1.414-2.12 2.122zM16.24 6.344l2.122-2.122 1.414 1.414-2.122 2.122zM6.342 7.759 4.22 5.637l1.415-1.414 2.12 2.122zm13.434 10.605-1.414 1.414-2.122-2.122 1.414-1.414z" class="astro-3ef6ksr2"></path> </svg> </button> </li> </ul> </nav> </div> </div> <div class="max-w-3xl mx-auto px-4"> <hr class="border-skin-line" aria-hidden="true"> </div> </header>   <div class="mx-auto flex w-full max-w-3xl justify-start px-2 astro-vj4tpspi"> <button class="focus-outline mb-2 mt-8 flex hover:opacity-75 astro-vj4tpspi" onclick="(() => (history.length === 1) ? window.location = '/' : history.back())()"> <svg xmlns="http://www.w3.org/2000/svg" style="transform: scaleX(-1);" class="astro-vj4tpspi"><path d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z" class="astro-vj4tpspi"></path> </svg><span class="astro-vj4tpspi">عودة</span> </button> </div> <main id="main-content" class="astro-vj4tpspi"> <h1 class="post-title astro-vj4tpspi" data-astro-transition-scope="astro-plk3gbjq-1">كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟</h1> <div class="flex items-center space-x-2 opacity-80 my-2 astro-vj4tpspi"><svg xmlns="http://www.w3.org/2000/svg" class="scale-100 ml-1 inline-block h-6 w-6 min-w-[1.375rem] fill-skin-base" aria-hidden="true"><path d="M7 11h2v2H7zm0 4h2v2H7zm4-4h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2z"></path><path d="M5 22h14c1.103 0 2-.897 2-2V6c0-1.103-.897-2-2-2h-2V2h-2v2H9V2H7v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2zM19 8l.001 12H5V8h14z"></path></svg><span class="sr-only">Published:</span><span class="italic text-base"><time dateTime="2024-09-03T19:17:31.000Z">٣٠ صفر ١٤٤٦ هـ</time><span aria-hidden="true"> | </span><span class="sr-only"> at </span><span class="text-nowrap">١٠:١٧ م</span></span></div> <article id="article" class="prose mx-auto mt-8 max-w-3xl text-justify astro-vj4tpspi"> <h2 id="في-هذه-المقالة">في هذه المقالة</h2>
-<ul>
-<li><a href="#%D8%A7%D9%84%D9%85%D8%B9%D8%A7%D9%84%D8%AC-%D9%8A%D9%86%D9%81%D8%B0-%D9%85%D9%87%D9%85%D8%A9-%D9%88%D8%A7%D8%AD%D8%AF%D8%A9-%D9%81%D9%8A-%D8%A2%D9%86-%D9%88%D8%A7%D8%AD%D8%AF">المعالج ينفذ مهمة واحدة في آن واحد</a></li>
-<li><a href="#nodejs-%D8%AA%D8%B9%D9%85%D9%84-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF%D8%A9">Nodejs تعمل على Thread واحدة</a></li>
-<li><a href="#%D9%85%D8%A7%D8%B0%D8%A7-%D8%B9%D9%86-%D8%A7%D9%84%D9%82%D8%B1%D8%A7%D8%A1%D8%A9-%D9%88%D8%A7%D9%84%D9%83%D8%AA%D8%A7%D8%A8%D8%A9-%D9%85%D9%86-%D9%88-%D8%B9%D9%84%D9%89-%D8%A7%D9%84%D9%85%D9%84%D9%81%D8%A7%D8%AA">ماذا عن القراءة والكتابة من و على الملفات؟</a></li>
-<li><a href="#%D9%85%D8%A7-%D9%87%D9%88-event-loop-">ما هو Event Loop ؟</a>
-<ul>
-<li><a href="#%D9%A1-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%A7%D9%84%D9%85%D8%A4%D9%82%D8%AA%D8%A7%D8%AA-timers">١. مرحلة تنفيذ المؤقتات (Timers):</a></li>
-<li><a href="#%D9%A2-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-%D8%A7%D9%84%D9%85%D8%B1%D8%AA%D8%AC%D8%B9%D8%A9-callbacks-%D8%A7%D9%84%D9%85%D8%A4%D8%AC%D9%84%D8%A9">٢. مرحلة تنفيذ التوابع المرتجعة (Callbacks) المؤجلة:</a></li>
-<li><a href="#%D9%A3-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-idle-prepare">٣. مرحلة Idle, Prepare:</a></li>
-<li><a href="#%D9%A4-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-%D8%A7%D9%84%D9%85%D8%B1%D8%AA%D8%AC%D8%B9%D8%A9-%D8%A7%D9%84%D9%85%D8%AA%D8%B9%D9%84%D9%8A%D8%A9-%D8%A8%D8%A7%D9%84%D8%AF%D8%AE%D9%84-%D9%88%D8%A7%D9%84%D8%AE%D8%B1%D8%AC-io-callbacks">٤. مرحلة تنفيذ التوابع المرتجعة المتعلية بالدخل والخرج (I/O Callbacks):</a></li>
-<li><a href="#%D9%A5-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-setimmediate">٥. مرحلة تنفيذ توابع setImmediate:</a></li>
-<li><a href="#%D9%A6-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%AF-%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-%D8%A7%D9%84%D9%85%D8%B1%D8%AA%D8%AC%D8%B9%D8%A9-%D8%A7%D9%84%D9%85%D8%AA%D8%B9%D9%84%D9%82%D8%A9-%D8%A8%D8%A5%D8%BA%D9%84%D8%A7%D9%82-%D8%A7%D9%84%D9%85%D9%87%D8%A7%D9%85-close-callbacks">٦. مرحلة تنفيد التوابع المرتجعة المتعلقة بإغلاق المهام Close Callbacks:</a></li>
-</ul>
-</li>
-<li><a href="#%D8%A7%D9%84%D9%85%D9%84%D8%AE%D8%B5">الملخص</a></li>
-<li><a href="#%D8%A7%D9%84%D9%85%D8%B1%D8%A7%D8%AC%D8%B9">المراجع</a></li>
-</ul>
-<h2 id="المعالج-ينفذ-مهمة-واحدة-في-آن-واحد">المعالج ينفذ مهمة واحدة في آن واحد</h2>
-<p>ربما سمعت عن مفهوم المزامنة (Concurrency)، الذي يعني تنفيذ عدة مهام في وقت واحد.</p>
-<p>على سبيل المثال:
-إنك تقرأ هذه المقالة على متصفحك، وقد تكون لديك ساعة تعمل في زاوية الشاشة وربما برامج أخرى قيد التشغيل في نفس الوقت.</p>
-<p>في الواقع، نواة المعالج الواحدة يمكنها تنفيذ مهمة واحدة فقط في آن واحد. لكن ما يحدث هو أن النواة تقوم بالتبديل بين المهام بسرعة فائقة، مما يعطي انطباعًا بأنها تنفذ عدة مهام في وقت واحد. هذه العملية تسمى (Context Switching).</p>
-<p>وصلنا اليوم إلى معالجاتٍ تحتوي على 32 نواة. هذا يعني أن المعالج يستطيع تنفيذ 32 مهمة في الوقت ذاته ذاته. لكن في حالة تطبيق ويب يستقبل آلاف الطلبات في الثانية، وعلى فرض أن كل طلب يستغرق ربع ثانية لتنفيذه. يمكن لكل نواة معالجة 4 طلبات في الثانية، مما يعني 128 طلبًا في الثانية فقط لمعالج ذو 32 نواة.</p>
-<p>كيف إذاً يتعامل المعالج مع آلاف الطلبات في نفس الوقت ويقوم بتخديمها جميعاً وبسرعة عالية دون الانتظار لساعات؟</p>
-<p>في الحقيقة كل برنامج على حاسوبك يُعتبر عملية (Process) تستطيع النواة التبديل بينها (Context Switching) بسرعة لتنفيذها جميعاً في نفس الوقت.
-فلو قمنا بتشغيل نفس برنامج الويب الخاص بنا 10 مرات على نفس النواة، فنظرياً سنستطيع تخديم ما يقارب 10 أضعاف الطلبات على النواة تماماً كما نقوم بتشغيل عدة برامج في نفس الوقت.</p>
-<p>لكن هذه العملية (Context Switching) مكلفة للغاية وبطيئة إذ سيتوجب على حاسوبك تغيير مساحة الذاكرة التي يتعامل معها، وتحديث سجلات المعالج وعدة أمور أخرى. ولذلك تم اختراع نوع آخر من المهام وهي (Threads) وتكون أبناءً لعملية (Process) واحدة.</p>
-<p>قد تحتوي كل (Process) على عدة مهام أصغر منها (Threads) وتتشارك هذه المهام الصغيرة في أمور أكثر مما يجعل (Context Switching) أقل تكلفة وبالتالي تنفيذ عدة مهام ضمن مهمة أب واحدة بشكل أسرع. على سبيل المثال، المتصفح الذي تقرأ منه هذه المقالة هو (Process)، وكل نافذة أو علامة تبويب تفتحها هي (Thread) ضمن هذه العملية.
-لكن حتى مع ذلك سيظل هناك (Context Switching) ولو كان أقل تكلفة من التبديل بين (Processes).</p>
-<h2 id="nodejs-تعمل-على-thread-واحدة">Nodejs تعمل على Thread واحدة</h2>
-<p>تم تصميم Nodejs لتعمل على Thread واحدة للتخلص من الوقت الضائع في عملية (Context Switching). لكن كيف لازالت تقوم بتخديم آلاف الطلبات في وقت واحد؟</p>
-<p>أولاً. هناك نوعان من المهام؛ مهام تقوم بإشغال المعالج حتى تنتهي كالعمليات الحسابية، ومهام لا تقوم بإشغاله بشكل كامل كإرسال طلب Http مثلاً.</p>
-<p>تسمى العمليات الأولى Blocking وتعني أن البرنامج لا يتابع التنفيذ حتى تنتهي العملية الحسابية الحالية (لأن المعالج مشغول)، أما الثانية تدعى (Non-Blocking) لأن المعالج يقوم بمعالجة إرسال طلب Http ثم هناك فترة حتى يرجع الطلب لا يقوم فيها المعالج بشيء حتى تعود نتيجة الطلب وهذه الفترة هي ما تستغله Nodejs لتنفيذ مهام أخرى. وتقوم بهذه العملية عن طريق ما يدعى Event Loop وهو قلب Nodejs والمتحكم الأساسي فيها.</p>
-<hr>
-<p>قبل الإكمال، لنأخذ مثالاً بسيطة عن نوعي المهام التي تشغل المعالج (Blocking) والتي لا تشغله (Non-Blocking).</p>
-<pre class="astro-code astro-code-themes min-light night-owl" style="background-color:#ffffff;--shiki-dark-bg:#011627;color:#24292eff;--shiki-dark:#d6deeb; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="js"><code><span class="line"><span style="color:#D32F2F;--shiki-dark:#C792EA">const</span><span style="color:#1976D2;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic"> TEN_SECONDS</span><span style="color:#D32F2F;--shiki-dark:#C792EA"> =</span><span style="color:#1976D2;--shiki-dark:#F78C6C"> 10_000</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">;</span></span>
+<!DOCTYPE html>
+<html lang="ar" class="scroll-smooth astro-sckkx6r4" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="canonical"
+      href="https://rashadkokash.com/posts/nodejs-event-loop/"
+    />
+    <meta name="generator" content="Astro v4.15.1" />
+    <!-- General Meta Tags -->
+    <title>
+      كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ |
+      رشاد كوكش
+    </title>
+    <meta
+      name="title"
+      content="كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش"
+    />
+    <meta
+      name="description"
+      content="كيف تعمل Nodejs من الداخل وماذا يعني (Non-Blocking I/O) وما الذي يجعل Nodejs من الخيارات الأمثل لبناء واجهات الويب البرمجية (APIs)"
+    />
+    <meta name="author" content="Rashad Kokash" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <!-- Open Graph / Facebook -->
+    <meta
+      property="og:title"
+      content="كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش"
+    />
+    <meta
+      property="og:description"
+      content="كيف تعمل Nodejs من الداخل وماذا يعني (Non-Blocking I/O) وما الذي يجعل Nodejs من الخيارات الأمثل لبناء واجهات الويب البرمجية (APIs)"
+    />
+    <meta
+      property="og:url"
+      content="https://rashadkokash.com/posts/nodejs-event-loop/"
+    />
+    <meta
+      property="og:image"
+      content="https://rashadkokash.com/posts/%D9%83%D9%8A%D9%81-%D8%AA%D8%B3%D8%AA%D8%B7%D9%8A%D8%B9-nodejs-%D8%AA%D8%AE%D8%AF%D9%8A%D9%85-%D8%A2%D9%84%D8%A7%D9%81-%D8%A7%D9%84%D8%B7%D9%84%D8%A8%D8%A7%D8%AA-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF-%D9%88%D9%85%D8%A7-%D9%87%D9%88-event-loop%D8%9F.png"
+    />
+    <!-- Article Published/Modified time -->
+    <meta
+      property="article:published_time"
+      content="2024-09-03T19:17:31.000Z"
+    />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta
+      property="twitter:url"
+      content="https://rashadkokash.com/posts/nodejs-event-loop/"
+    />
+    <meta
+      property="twitter:title"
+      content="كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش"
+    />
+    <meta
+      property="twitter:description"
+      content="كيف تعمل Nodejs من الداخل وماذا يعني (Non-Blocking I/O) وما الذي يجعل Nodejs من الخيارات الأمثل لبناء واجهات الويب البرمجية (APIs)"
+    />
+    <meta
+      property="twitter:image"
+      content="https://rashadkokash.com/posts/%D9%83%D9%8A%D9%81-%D8%AA%D8%B3%D8%AA%D8%B7%D9%8A%D8%B9-nodejs-%D8%AA%D8%AE%D8%AF%D9%8A%D9%85-%D8%A2%D9%84%D8%A7%D9%81-%D8%A7%D9%84%D8%B7%D9%84%D8%A8%D8%A7%D8%AA-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF-%D9%88%D9%85%D8%A7-%D9%87%D9%88-event-loop%D8%9F.png"
+    />
+    <!-- Google JSON-LD Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": "كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟ | رشاد كوكش",
+        "image": "https://rashadkokash.com/posts/%D9%83%D9%8A%D9%81-%D8%AA%D8%B3%D8%AA%D8%B7%D9%8A%D8%B9-nodejs-%D8%AA%D8%AE%D8%AF%D9%8A%D9%85-%D8%A2%D9%84%D8%A7%D9%81-%D8%A7%D9%84%D8%B7%D9%84%D8%A8%D8%A7%D8%AA-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF-%D9%88%D9%85%D8%A7-%D9%87%D9%88-event-loop%D8%9F.png",
+        "datePublished": "2024-09-03T19:17:31.000Z",
+        "author": [
+          {
+            "@type": "Person",
+            "name": "Rashad Kokash",
+            "url": "https://rashadkokash.com/"
+          }
+        ]
+      }
+    </script>
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400..600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inconsolata&family=Source+Code+Pro&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="theme-color" content="" />
+    <meta name="astro-view-transitions-enabled" content="true" />
+    <meta name="astro-view-transitions-fallback" content="animate" />
+    <script src="/toggle-theme.js"></script>
+    <style>
+      .breadcrumb:where(.astro-ilhxcym7) {
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 0.25rem;
+        margin-top: 2rem;
+        width: 100%;
+        max-width: 48rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      .breadcrumb:where(.astro-ilhxcym7)
+        ul:where(.astro-ilhxcym7)
+        li:where(.astro-ilhxcym7) {
+        display: inline;
+      }
+      .breadcrumb:where(.astro-ilhxcym7)
+        ul:where(.astro-ilhxcym7)
+        li:where(.astro-ilhxcym7)
+        a:where(.astro-ilhxcym7) {
+        text-transform: capitalize;
+        opacity: 0.7;
+      }
+      .breadcrumb:where(.astro-ilhxcym7)
+        ul:where(.astro-ilhxcym7)
+        li:where(.astro-ilhxcym7)
+        span:where(.astro-ilhxcym7) {
+        opacity: 0.7;
+      }
+      .breadcrumb:where(.astro-ilhxcym7)
+        ul:where(.astro-ilhxcym7)
+        li:where(.astro-ilhxcym7):not(:last-child)
+        a:where(.astro-ilhxcym7):hover {
+        opacity: 1;
+      }
+    </style>
+    <link rel="stylesheet" href="/astro/about.CExf5qeP.css" />
+    <style>
+      #main-content:where(.astro-hsp6otuf) {
+        margin-left: auto;
+        margin-right: auto;
+        width: 100%;
+        max-width: 48rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 1rem;
+      }
+      #main-content:where(.astro-hsp6otuf) h1:where(.astro-hsp6otuf) {
+        font-size: 1.5rem;
+        line-height: 2rem;
+        font-weight: 600;
+      }
+      @media (min-width: 640px) {
+        #main-content:where(.astro-hsp6otuf) h1:where(.astro-hsp6otuf) {
+          font-size: 1.875rem;
+          line-height: 2.25rem;
+        }
+      }
+      #main-content:where(.astro-hsp6otuf) p:where(.astro-hsp6otuf) {
+        margin-bottom: 1.5rem;
+        margin-top: 0.5rem;
+        font-style: italic;
+      }
+      a:where(.astro-blwjyjpt) {
+        position: relative;
+        text-decoration-line: underline;
+        text-decoration-style: dashed;
+      }
+      a:where(.astro-blwjyjpt):hover {
+        top: -0.125rem;
+        --tw-text-opacity: 1;
+        color: rgba(var(--color-accent), var(--tw-text-opacity));
+      }
+      a:where(.astro-blwjyjpt):focus-visible {
+        padding: 0.25rem;
+      }
+      a:where(.astro-blwjyjpt) svg:where(.astro-blwjyjpt) {
+        margin-right: -0.25rem;
+        height: 1.5rem;
+        width: 1.5rem;
+        --tw-scale-x: 0.95;
+        --tw-scale-y: 0.95;
+        transform: translate(var(--tw-translate-x), var(--tw-translate-y))
+          rotate(var(--tw-rotate)) skew(var(--tw-skew-x))
+          skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x))
+          scaleY(var(--tw-scale-y));
+        --tw-text-opacity: 1;
+        color: rgba(var(--color-text-base), var(--tw-text-opacity));
+        opacity: 0.8;
+      }
+      .group:where(.astro-blwjyjpt):hover
+        a:where(.astro-blwjyjpt)
+        svg:where(.astro-blwjyjpt) {
+        fill: rgb(var(--color-accent));
+      }
+      .pagination-wrapper:where(.astro-d776pwuy) {
+        margin-bottom: 2rem;
+        margin-top: auto;
+        display: flex;
+        justify-content: center;
+      }
+      .disabled:where(.astro-d776pwuy) {
+        pointer-events: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        opacity: 0.5;
+      }
+      .disabled:where(.astro-d776pwuy):hover {
+        --tw-text-opacity: 1;
+        color: rgba(var(--color-text-base), var(--tw-text-opacity));
+      }
+      .group:where(.astro-d776pwuy):hover .disabled:where(.astro-d776pwuy) {
+        fill: rgb(var(--color-text-base));
+      }
+      .group:where(.astro-d776pwuy):hover .disabled-svg:where(.astro-d776pwuy) {
+        fill: rgb(var(--color-text-base)) !important;
+      }
+      @keyframes astroFadeInOut {
+        0% {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @keyframes astroFadeIn {
+        0% {
+          opacity: 0;
+        }
+      }
+      @keyframes astroFadeOut {
+        to {
+          opacity: 0;
+        }
+      }
+      @keyframes astroSlideFromRight {
+        0% {
+          transform: translate(100%);
+        }
+      }
+      @keyframes astroSlideFromLeft {
+        0% {
+          transform: translate(-100%);
+        }
+      }
+      @keyframes astroSlideToRight {
+        to {
+          transform: translate(100%);
+        }
+      }
+      @keyframes astroSlideToLeft {
+        to {
+          transform: translate(-100%);
+        }
+      }
+      @media (prefers-reduced-motion) {
+        ::view-transition-group(*),
+        ::view-transition-old(*),
+        ::view-transition-new(*) {
+          animation: none !important;
+        }
+        [data-astro-transition-scope] {
+          animation: none !important;
+        }
+      }
+      .social-icons:where(.astro-wkojbtzc) {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+      }
+      @media (min-width: 640px) {
+        .social-icons:where(.astro-wkojbtzc) {
+          align-items: flex-start;
+        }
+      }
+      .link-button:where(.astro-wkojbtzc) {
+        --tw-scale-x: 0.9;
+        --tw-scale-y: 0.9;
+        transform: translate(var(--tw-translate-x), var(--tw-translate-y))
+          rotate(var(--tw-rotate)) skew(var(--tw-skew-x))
+          skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x))
+          scaleY(var(--tw-scale-y));
+        padding: 0.5rem;
+      }
+      .link-button:where(.astro-wkojbtzc):hover {
+        --tw-rotate: 6deg;
+        transform: translate(var(--tw-translate-x), var(--tw-translate-y))
+          rotate(var(--tw-rotate)) skew(var(--tw-skew-x))
+          skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x))
+          scaleY(var(--tw-scale-y));
+      }
+      @media (min-width: 640px) {
+        .link-button:where(.astro-wkojbtzc) {
+          padding: 0.25rem;
+        }
+      }
+      main:where(.astro-vj4tpspi) {
+        margin-left: auto;
+        margin-right: auto;
+        width: 100%;
+        max-width: 48rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 3rem;
+      }
+      .post-title:where(.astro-vj4tpspi) {
+        font-size: 1.5rem;
+        line-height: 2rem;
+        font-weight: 600;
+        --tw-text-opacity: 1;
+        color: rgba(var(--color-accent), var(--tw-text-opacity));
+      }
+    </style>
+    <script type="module" src="/astro/hoisted.BvA1nkMO.js"></script>
+    <style>
+      [data-astro-transition-scope="astro-plk3gbjq-1"] {
+        view-transition-name: \643\64A\641-\62A\633\62A\637\64A\639-nodejs-\62A\62E\62F\64A\645-\622\644\627\641-\627\644\637\644\628\627\62A-\639\644\649-thread-\648\627\62D\62F-\648\645\627-\647\648-event-loop\61F;
+      }
+      @layer astro {
+        ::view-transition-old(
+            \643\64a\641-\62a\633\62a\637\64a\639-nodejs-\62a\62e\62f\64a\645-\622\644\627\641-\627\644\637\644\628\627\62a-\639\644\649-thread-\648\627\62d\62f-\648\645\627-\647\648-event-loop\61f
+          ) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeOut;
+        }
+        ::view-transition-new(
+            \643\64a\641-\62a\633\62a\637\64a\639-nodejs-\62a\62e\62f\64a\645-\622\644\627\641-\627\644\637\644\628\627\62a-\639\644\649-thread-\648\627\62d\62f-\648\645\627-\647\648-event-loop\61f
+          ) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeIn;
+        }
+        [data-astro-transition="back"]::view-transition-old(
+            \643\64a\641-\62a\633\62a\637\64a\639-nodejs-\62a\62e\62f\64a\645-\622\644\627\641-\627\644\637\644\628\627\62a-\639\644\649-thread-\648\627\62d\62f-\648\645\627-\647\648-event-loop\61f
+          ) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeOut;
+        }
+        [data-astro-transition="back"]::view-transition-new(
+            \643\64a\641-\62a\633\62a\637\64a\639-nodejs-\62a\62e\62f\64a\645-\622\644\627\641-\627\644\637\644\628\627\62a-\639\644\649-thread-\648\627\62d\62f-\648\645\627-\647\648-event-loop\61f
+          ) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeIn;
+        }
+      }
+      [data-astro-transition-fallback="old"]
+        [data-astro-transition-scope="astro-plk3gbjq-1"],
+      [data-astro-transition-fallback="old"][data-astro-transition-scope="astro-plk3gbjq-1"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeOut;
+      }
+      [data-astro-transition-fallback="new"]
+        [data-astro-transition-scope="astro-plk3gbjq-1"],
+      [data-astro-transition-fallback="new"][data-astro-transition-scope="astro-plk3gbjq-1"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeIn;
+      }
+      [data-astro-transition="back"][data-astro-transition-fallback="old"]
+        [data-astro-transition-scope="astro-plk3gbjq-1"],
+      [data-astro-transition="back"][data-astro-transition-fallback="old"][data-astro-transition-scope="astro-plk3gbjq-1"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeOut;
+      }
+      [data-astro-transition="back"][data-astro-transition-fallback="new"]
+        [data-astro-transition-scope="astro-plk3gbjq-1"],
+      [data-astro-transition="back"][data-astro-transition-fallback="new"][data-astro-transition-scope="astro-plk3gbjq-1"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeIn;
+      }
+    </style>
+    <style>
+      [data-astro-transition-scope="astro-36ssibgs-2"] {
+        view-transition-name: nodejs;
+      }
+      @layer astro {
+        ::view-transition-old(nodejs) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeOut;
+        }
+        ::view-transition-new(nodejs) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeIn;
+        }
+        [data-astro-transition="back"]::view-transition-old(nodejs) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeOut;
+        }
+        [data-astro-transition="back"]::view-transition-new(nodejs) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeIn;
+        }
+      }
+      [data-astro-transition-fallback="old"]
+        [data-astro-transition-scope="astro-36ssibgs-2"],
+      [data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-2"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeOut;
+      }
+      [data-astro-transition-fallback="new"]
+        [data-astro-transition-scope="astro-36ssibgs-2"],
+      [data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-2"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeIn;
+      }
+      [data-astro-transition="back"][data-astro-transition-fallback="old"]
+        [data-astro-transition-scope="astro-36ssibgs-2"],
+      [data-astro-transition="back"][data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-2"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeOut;
+      }
+      [data-astro-transition="back"][data-astro-transition-fallback="new"]
+        [data-astro-transition-scope="astro-36ssibgs-2"],
+      [data-astro-transition="back"][data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-2"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeIn;
+      }
+    </style>
+    <style>
+      [data-astro-transition-scope="astro-36ssibgs-3"] {
+        view-transition-name: javascript;
+      }
+      @layer astro {
+        ::view-transition-old(javascript) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeOut;
+        }
+        ::view-transition-new(javascript) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeIn;
+        }
+        [data-astro-transition="back"]::view-transition-old(javascript) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeOut;
+        }
+        [data-astro-transition="back"]::view-transition-new(javascript) {
+          animation-duration: 180ms;
+          animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+          animation-fill-mode: both;
+          animation-name: astroFadeIn;
+        }
+      }
+      [data-astro-transition-fallback="old"]
+        [data-astro-transition-scope="astro-36ssibgs-3"],
+      [data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-3"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeOut;
+      }
+      [data-astro-transition-fallback="new"]
+        [data-astro-transition-scope="astro-36ssibgs-3"],
+      [data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-3"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeIn;
+      }
+      [data-astro-transition="back"][data-astro-transition-fallback="old"]
+        [data-astro-transition-scope="astro-36ssibgs-3"],
+      [data-astro-transition="back"][data-astro-transition-fallback="old"][data-astro-transition-scope="astro-36ssibgs-3"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeOut;
+      }
+      [data-astro-transition="back"][data-astro-transition-fallback="new"]
+        [data-astro-transition-scope="astro-36ssibgs-3"],
+      [data-astro-transition="back"][data-astro-transition-fallback="new"][data-astro-transition-scope="astro-36ssibgs-3"] {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+        animation-fill-mode: both;
+        animation-name: astroFadeIn;
+      }
+    </style>
+  </head>
+  <body class="astro-sckkx6r4">
+    <header class="astro-3ef6ksr2">
+      <a id="skip-to-content" href="#main-content" class="astro-3ef6ksr2"
+        >Skip to content</a
+      >
+      <div class="nav-container astro-3ef6ksr2">
+        <div class="top-nav-wrap astro-3ef6ksr2">
+          <a href="/" class="logo whitespace-nowrap astro-3ef6ksr2">
+            رشاد كوكش
+          </a>
+          <nav id="nav-menu" class="astro-3ef6ksr2">
+            <button
+              class="hamburger-menu focus-outline astro-3ef6ksr2"
+              aria-label="Open Menu"
+              aria-expanded="false"
+              aria-controls="menu-items"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="menu-icon astro-3ef6ksr2"
+              >
+                <line
+                  x1="7"
+                  y1="12"
+                  x2="21"
+                  y2="12"
+                  class="line astro-3ef6ksr2"
+                ></line>
+                <line
+                  x1="3"
+                  y1="6"
+                  x2="21"
+                  y2="6"
+                  class="line astro-3ef6ksr2"
+                ></line>
+                <line
+                  x1="12"
+                  y1="18"
+                  x2="21"
+                  y2="18"
+                  class="line astro-3ef6ksr2"
+                ></line>
+                <line
+                  x1="18"
+                  y1="6"
+                  x2="6"
+                  y2="18"
+                  class="close astro-3ef6ksr2"
+                ></line>
+                <line
+                  x1="6"
+                  y1="6"
+                  x2="18"
+                  y2="18"
+                  class="close astro-3ef6ksr2"
+                ></line>
+              </svg>
+            </button>
+            <ul id="menu-items" class="display-none sm:flex astro-3ef6ksr2">
+              <li class="astro-3ef6ksr2">
+                <a href="/posts/" class="astro-3ef6ksr2"> المقالات </a>
+              </li>
+              <li class="astro-3ef6ksr2">
+                <a href="/tags/" class="astro-3ef6ksr2"> الوسوم </a>
+              </li>
+              <li class="astro-3ef6ksr2">
+                <a href="/about/" class="astro-3ef6ksr2"> من أنا </a>
+              </li>
+              <li class="astro-3ef6ksr2">
+                <a
+                  href="/search/"
+                  class="group inline-block hover:text-skin-accent focus-outline p-3 sm:p-1 flex astro-3ef6ksr2"
+                  aria-label="search"
+                  title="Search"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="scale-125 sm:scale-100 astro-3ef6ksr2"
+                  >
+                    <path
+                      d="M19.023 16.977a35.13 35.13 0 0 1-1.367-1.384c-.372-.378-.596-.653-.596-.653l-2.8-1.337A6.962 6.962 0 0 0 16 9c0-3.859-3.14-7-7-7S2 5.141 2 9s3.14 7 7 7c1.763 0 3.37-.66 4.603-1.739l1.337 2.8s.275.224.653.596c.387.363.896.854 1.384 1.367l1.358 1.392.604.646 2.121-2.121-.646-.604c-.379-.372-.885-.866-1.391-1.36zM9 14c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z"
+                      class="astro-3ef6ksr2"
+                    ></path>
+                  </svg>
+                  <span class="sr-only astro-3ef6ksr2">البحث</span>
+                </a>
+              </li>
+              <li class="astro-3ef6ksr2">
+                <button
+                  id="theme-btn"
+                  class="focus-outline astro-3ef6ksr2"
+                  title="Toggles light & dark"
+                  aria-label="auto"
+                  aria-live="polite"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    id="moon-svg"
+                    class="astro-3ef6ksr2"
+                  >
+                    <path
+                      d="M20.742 13.045a8.088 8.088 0 0 1-2.077.271c-2.135 0-4.14-.83-5.646-2.336a8.025 8.025 0 0 1-2.064-7.723A1 1 0 0 0 9.73 2.034a10.014 10.014 0 0 0-4.489 2.582c-3.898 3.898-3.898 10.243 0 14.143a9.937 9.937 0 0 0 7.072 2.93 9.93 9.93 0 0 0 7.07-2.929 10.007 10.007 0 0 0 2.583-4.491 1.001 1.001 0 0 0-1.224-1.224zm-2.772 4.301a7.947 7.947 0 0 1-5.656 2.343 7.953 7.953 0 0 1-5.658-2.344c-3.118-3.119-3.118-8.195 0-11.314a7.923 7.923 0 0 1 2.06-1.483 10.027 10.027 0 0 0 2.89 7.848 9.972 9.972 0 0 0 7.848 2.891 8.036 8.036 0 0 1-1.484 2.059z"
+                      class="astro-3ef6ksr2"
+                    ></path>
+                  </svg>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    id="sun-svg"
+                    class="astro-3ef6ksr2"
+                  >
+                    <path
+                      d="M6.993 12c0 2.761 2.246 5.007 5.007 5.007s5.007-2.246 5.007-5.007S14.761 6.993 12 6.993 6.993 9.239 6.993 12zM12 8.993c1.658 0 3.007 1.349 3.007 3.007S13.658 15.007 12 15.007 8.993 13.658 8.993 12 10.342 8.993 12 8.993zM10.998 19h2v3h-2zm0-17h2v3h-2zm-9 9h3v2h-3zm17 0h3v2h-3zM4.219 18.363l2.12-2.122 1.415 1.414-2.12 2.122zM16.24 6.344l2.122-2.122 1.414 1.414-2.122 2.122zM6.342 7.759 4.22 5.637l1.415-1.414 2.12 2.122zm13.434 10.605-1.414 1.414-2.122-2.122 1.414-1.414z"
+                      class="astro-3ef6ksr2"
+                    ></path>
+                  </svg>
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+      <div class="max-w-3xl mx-auto px-4">
+        <hr class="border-skin-line" aria-hidden="true" />
+      </div>
+    </header>
+    <div
+      class="mx-auto flex w-full max-w-3xl justify-start px-2 astro-vj4tpspi"
+    >
+      <button
+        class="focus-outline mb-2 mt-8 flex hover:opacity-75 astro-vj4tpspi"
+        onclick="(() => (history.length === 1) ? window.location = '/' : history.back())()"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          style="transform: scaleX(-1)"
+          class="astro-vj4tpspi"
+        >
+          <path
+            d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z"
+            class="astro-vj4tpspi"
+          ></path></svg
+        ><span class="astro-vj4tpspi">عودة</span>
+      </button>
+    </div>
+    <main id="main-content" class="astro-vj4tpspi">
+      <h1
+        class="post-title astro-vj4tpspi"
+        data-astro-transition-scope="astro-plk3gbjq-1"
+      >
+        كيف تستطيع Nodejs تخديم آلاف الطلبات على Thread واحد وما هو Event Loop؟
+      </h1>
+      <div class="flex items-center space-x-2 opacity-80 my-2 astro-vj4tpspi">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="scale-100 ml-1 inline-block h-6 w-6 min-w-[1.375rem] fill-skin-base"
+          aria-hidden="true"
+        >
+          <path
+            d="M7 11h2v2H7zm0 4h2v2H7zm4-4h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2z"
+          ></path>
+          <path
+            d="M5 22h14c1.103 0 2-.897 2-2V6c0-1.103-.897-2-2-2h-2V2h-2v2H9V2H7v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2zM19 8l.001 12H5V8h14z"
+          ></path></svg
+        ><span class="sr-only">Published:</span
+        ><span class="italic text-base"
+          ><time datetime="2024-09-03T19:17:31.000Z">٣٠ صفر ١٤٤٦ هـ</time
+          ><span aria-hidden="true"> | </span><span class="sr-only"> at </span
+          ><span class="text-nowrap">١٠:١٧ م</span></span
+        >
+      </div>
+      <article
+        id="article"
+        class="prose mx-auto mt-8 max-w-3xl text-justify astro-vj4tpspi"
+      >
+        <h2 id="في-هذه-المقالة">في هذه المقالة</h2>
+        <ul>
+          <li>
+            <a
+              href="#%D8%A7%D9%84%D9%85%D8%B9%D8%A7%D9%84%D8%AC-%D9%8A%D9%86%D9%81%D8%B0-%D9%85%D9%87%D9%85%D8%A9-%D9%88%D8%A7%D8%AD%D8%AF%D8%A9-%D9%81%D9%8A-%D8%A2%D9%86-%D9%88%D8%A7%D8%AD%D8%AF"
+              >المعالج ينفذ مهمة واحدة في آن واحد</a
+            >
+          </li>
+          <li>
+            <a
+              href="#nodejs-%D8%AA%D8%B9%D9%85%D9%84-%D8%B9%D9%84%D9%89-thread-%D9%88%D8%A7%D8%AD%D8%AF%D8%A9"
+              >Nodejs تعمل على Thread واحدة</a
+            >
+          </li>
+          <li>
+            <a
+              href="#%D9%85%D8%A7%D8%B0%D8%A7-%D8%B9%D9%86-%D8%A7%D9%84%D9%82%D8%B1%D8%A7%D8%A1%D8%A9-%D9%88%D8%A7%D9%84%D9%83%D8%AA%D8%A7%D8%A8%D8%A9-%D9%85%D9%86-%D9%88-%D8%B9%D9%84%D9%89-%D8%A7%D9%84%D9%85%D9%84%D9%81%D8%A7%D8%AA"
+              >ماذا عن القراءة والكتابة من و على الملفات؟</a
+            >
+          </li>
+          <li>
+            <a href="#%D9%85%D8%A7-%D9%87%D9%88-event-loop-"
+              >ما هو Event Loop ؟</a
+            >
+            <ul>
+              <li>
+                <a
+                  href="#%D9%A1-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%A7%D9%84%D9%85%D8%A4%D9%82%D8%AA%D8%A7%D8%AA-timers"
+                  >١. مرحلة تنفيذ المؤقتات (Timers):</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#%D9%A2-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-%D8%A7%D9%84%D9%85%D8%B1%D8%AA%D8%AC%D8%B9%D8%A9-callbacks-%D8%A7%D9%84%D9%85%D8%A4%D8%AC%D9%84%D8%A9"
+                  >٢. مرحلة تنفيذ التوابع المرتجعة (Callbacks) المؤجلة:</a
+                >
+              </li>
+              <li>
+                <a href="#%D9%A3-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-idle-prepare"
+                  >٣. مرحلة Idle, Prepare:</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#%D9%A4-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-%D8%A7%D9%84%D9%85%D8%B1%D8%AA%D8%AC%D8%B9%D8%A9-%D8%A7%D9%84%D9%85%D8%AA%D8%B9%D9%84%D9%8A%D8%A9-%D8%A8%D8%A7%D9%84%D8%AF%D8%AE%D9%84-%D9%88%D8%A7%D9%84%D8%AE%D8%B1%D8%AC-io-callbacks"
+                  >٤. مرحلة تنفيذ التوابع المرتجعة المتعلية بالدخل والخرج (I/O
+                  Callbacks):</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#%D9%A5-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%B0-%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-setimmediate"
+                  >٥. مرحلة تنفيذ توابع setImmediate:</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#%D9%A6-%D9%85%D8%B1%D8%AD%D9%84%D8%A9-%D8%AA%D9%86%D9%81%D9%8A%D8%AF-%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%A8%D8%B9-%D8%A7%D9%84%D9%85%D8%B1%D8%AA%D8%AC%D8%B9%D8%A9-%D8%A7%D9%84%D9%85%D8%AA%D8%B9%D9%84%D9%82%D8%A9-%D8%A8%D8%A5%D8%BA%D9%84%D8%A7%D9%82-%D8%A7%D9%84%D9%85%D9%87%D8%A7%D9%85-close-callbacks"
+                  >٦. مرحلة تنفيد التوابع المرتجعة المتعلقة بإغلاق المهام Close
+                  Callbacks:</a
+                >
+              </li>
+            </ul>
+          </li>
+          <li><a href="#%D8%A7%D9%84%D9%85%D9%84%D8%AE%D8%B5">الملخص</a></li>
+          <li>
+            <a href="#%D8%A7%D9%84%D9%85%D8%B1%D8%A7%D8%AC%D8%B9">المراجع</a>
+          </li>
+        </ul>
+        <h2 id="المعالج-ينفذ-مهمة-واحدة-في-آن-واحد">
+          المعالج ينفذ مهمة واحدة في آن واحد
+        </h2>
+        <p>
+          ربما سمعت عن مفهوم المزامنة (Concurrency)، الذي يعني تنفيذ عدة مهام في
+          وقت واحد.
+        </p>
+        <p>
+          على سبيل المثال: إنك تقرأ هذه المقالة على متصفحك، وقد تكون لديك ساعة
+          تعمل في زاوية الشاشة وربما برامج أخرى قيد التشغيل في نفس الوقت.
+        </p>
+        <p>
+          في الواقع، نواة المعالج الواحدة يمكنها تنفيذ مهمة واحدة فقط في آن
+          واحد. لكن ما يحدث هو أن النواة تقوم بالتبديل بين المهام بسرعة فائقة،
+          مما يعطي انطباعًا بأنها تنفذ عدة مهام في وقت واحد. هذه العملية تسمى
+          (Context Switching).
+        </p>
+        <p>
+          وصلنا اليوم إلى معالجاتٍ تحتوي على 32 نواة. هذا يعني أن المعالج يستطيع
+          تنفيذ 32 مهمة في الوقت ذاته ذاته. لكن في حالة تطبيق ويب يستقبل آلاف
+          الطلبات في الثانية، وعلى فرض أن كل طلب يستغرق ربع ثانية لتنفيذه. يمكن
+          لكل نواة معالجة 4 طلبات في الثانية، مما يعني 128 طلبًا في الثانية فقط
+          لمعالج ذو 32 نواة.
+        </p>
+        <p>
+          كيف إذاً يتعامل المعالج مع آلاف الطلبات في نفس الوقت ويقوم بتخديمها
+          جميعاً وبسرعة عالية دون الانتظار لساعات؟
+        </p>
+        <p>
+          في الحقيقة كل برنامج على حاسوبك يُعتبر عملية (Process) تستطيع النواة
+          التبديل بينها (Context Switching) بسرعة لتنفيذها جميعاً في نفس الوقت.
+          فلو قمنا بتشغيل نفس برنامج الويب الخاص بنا 10 مرات على نفس النواة،
+          فنظرياً سنستطيع تخديم ما يقارب 10 أضعاف الطلبات على النواة تماماً كما
+          نقوم بتشغيل عدة برامج في نفس الوقت.
+        </p>
+        <p>
+          لكن هذه العملية (Context Switching) مكلفة للغاية وبطيئة إذ سيتوجب على
+          حاسوبك تغيير مساحة الذاكرة التي يتعامل معها، وتحديث سجلات المعالج وعدة
+          أمور أخرى. ولذلك تم اختراع نوع آخر من المهام وهي (Threads) وتكون
+          أبناءً لعملية (Process) واحدة.
+        </p>
+        <p>
+          قد تحتوي كل (Process) على عدة مهام أصغر منها (Threads) وتتشارك هذه
+          المهام الصغيرة في أمور أكثر مما يجعل (Context Switching) أقل تكلفة
+          وبالتالي تنفيذ عدة مهام ضمن مهمة أب واحدة بشكل أسرع. على سبيل المثال،
+          المتصفح الذي تقرأ منه هذه المقالة هو (Process)، وكل نافذة أو علامة
+          تبويب تفتحها هي (Thread) ضمن هذه العملية. لكن حتى مع ذلك سيظل هناك
+          (Context Switching) ولو كان أقل تكلفة من التبديل بين (Processes).
+        </p>
+        <h2 id="nodejs-تعمل-على-thread-واحدة">Nodejs تعمل على Thread واحدة</h2>
+        <p>
+          تم تصميم Nodejs لتعمل على Thread واحدة للتخلص من الوقت الضائع في عملية
+          (Context Switching). لكن كيف لازالت تقوم بتخديم آلاف الطلبات في وقت
+          واحد؟
+        </p>
+        <p>
+          أولاً. هناك نوعان من المهام؛ مهام تقوم بإشغال المعالج حتى تنتهي
+          كالعمليات الحسابية، ومهام لا تقوم بإشغاله بشكل كامل كإرسال طلب Http
+          مثلاً.
+        </p>
+        <p>
+          تسمى العمليات الأولى Blocking وتعني أن البرنامج لا يتابع التنفيذ حتى
+          تنتهي العملية الحسابية الحالية (لأن المعالج مشغول)، أما الثانية تدعى
+          (Non-Blocking) لأن المعالج يقوم بمعالجة إرسال طلب Http ثم هناك فترة
+          حتى يرجع الطلب لا يقوم فيها المعالج بشيء حتى تعود نتيجة الطلب وهذه
+          الفترة هي ما تستغله Nodejs لتنفيذ مهام أخرى. وتقوم بهذه العملية عن
+          طريق ما يدعى Event Loop وهو قلب Nodejs والمتحكم الأساسي فيها.
+        </p>
+        <hr />
+        <p>
+          قبل الإكمال، لنأخذ مثالاً بسيطة عن نوعي المهام التي تشغل المعالج
+          (Blocking) والتي لا تشغله (Non-Blocking).
+        </p>
+        <pre
+          class="astro-code astro-code-themes min-light night-owl"
+          style="
+            background-color: #ffffff;
+            --shiki-dark-bg: #011627;
+            color: #24292eff;
+            --shiki-dark: #d6deeb;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+          "
+          tabindex="0"
+          data-language="js"
+        ><code><span class="line"><span style="color:#D32F2F;--shiki-dark:#C792EA">const</span><span style="color:#1976D2;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic"> TEN_SECONDS</span><span style="color:#D32F2F;--shiki-dark:#C792EA"> =</span><span style="color:#1976D2;--shiki-dark:#F78C6C"> 10_000</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">;</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#D32F2F;--shiki-dark:#C792EA">function</span><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic"> blockingTask</span><span style="color:#24292EFF;--shiki-dark:#D9F5DD">()</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB"> {</span></span>
 <span class="line"><span style="color:#D32F2F;--shiki-dark:#C792EA">  const</span><span style="color:#1976D2;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic"> until</span><span style="color:#D32F2F;--shiki-dark:#C792EA"> =</span><span style="color:#1976D2;--shiki-dark:#7FDBCA;font-style:inherit;--shiki-dark-font-style:italic"> Date</span><span style="color:#6F42C1;--shiki-dark:#C792EA;font-style:inherit;--shiki-dark-font-style:italic">.</span><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic">now</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">()</span><span style="color:#D32F2F;--shiki-dark:#C792EA"> +</span><span style="color:#1976D2;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic"> TEN_SECONDS</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">;</span></span>
@@ -178,13 +871,42 @@ a:where(.astro-blwjyjpt){position:relative;text-decoration-line:underline;text-d
 <span class="line"></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic">main</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">();</span></span>
 <span class="line"></span></code></pre>
-<p>إن خرج هذا المثال هو</p>
-<pre class="astro-code astro-code-themes min-light night-owl" style="background-color:#ffffff;--shiki-dark-bg:#011627;color:#24292eff;--shiki-dark:#d6deeb; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Time: 9.999s</span></span>
+        <p>إن خرج هذا المثال هو</p>
+        <pre
+          class="astro-code astro-code-themes min-light night-owl"
+          style="
+            background-color: #ffffff;
+            --shiki-dark-bg: #011627;
+            color: #24292eff;
+            --shiki-dark: #d6deeb;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+          "
+          tabindex="0"
+          data-language="plaintext"
+        ><code><span class="line"><span>Time: 9.999s</span></span>
 <span class="line"><span>otherTask</span></span>
 <span class="line"><span></span></span></code></pre>
-<p>وذلك لأن <code>while</code> تقوم بإشغال المعالج بشكل كامل لمدة ١٠ ثواني.</p>
-<p>وأما هنا</p>
-<pre class="astro-code astro-code-themes min-light night-owl" style="background-color:#ffffff;--shiki-dark-bg:#011627;color:#24292eff;--shiki-dark:#d6deeb; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="js"><code><span class="line"><span style="color:#D32F2F;--shiki-dark:#C792EA">function</span><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic"> nonBlockingTask</span><span style="color:#24292EFF;--shiki-dark:#D9F5DD">()</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB"> {</span></span>
+        <p>
+          وذلك لأن <code>while</code> تقوم بإشغال المعالج بشكل كامل لمدة ١٠
+          ثواني.
+        </p>
+        <p>وأما هنا</p>
+        <pre
+          class="astro-code astro-code-themes min-light night-owl"
+          style="
+            background-color: #ffffff;
+            --shiki-dark-bg: #011627;
+            color: #24292eff;
+            --shiki-dark: #d6deeb;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+          "
+          tabindex="0"
+          data-language="js"
+        ><code><span class="line"><span style="color:#D32F2F;--shiki-dark:#C792EA">function</span><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic"> nonBlockingTask</span><span style="color:#24292EFF;--shiki-dark:#D9F5DD">()</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB"> {</span></span>
 <span class="line"><span style="color:#1976D2;--shiki-dark:#7FDBCA;font-style:inherit;--shiki-dark-font-style:italic">  console</span><span style="color:#6F42C1;--shiki-dark:#C792EA;font-style:inherit;--shiki-dark-font-style:italic">.</span><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic">time</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">(</span><span style="color:#22863A;--shiki-dark:#D9F5DD">"</span><span style="color:#22863A;--shiki-dark:#ECC48D">Fetch</span><span style="color:#22863A;--shiki-dark:#D9F5DD">"</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">);</span></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic">  fetch</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">(</span><span style="color:#22863A;--shiki-dark:#D9F5DD">"</span><span style="color:#22863A;--shiki-dark:#ECC48D">https://www.google.com</span><span style="color:#22863A;--shiki-dark:#D9F5DD">"</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">)</span></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#C792EA;font-style:inherit;--shiki-dark-font-style:italic">    .</span><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic">then</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">(</span><span style="color:#24292EFF;--shiki-dark:#D7DBE0">res</span><span style="color:#D32F2F;--shiki-dark:#C792EA"> =></span><span style="color:#1976D2;--shiki-dark:#7FDBCA;font-style:inherit;--shiki-dark-font-style:italic"> res</span><span style="color:#6F42C1;--shiki-dark:#C792EA;font-style:inherit;--shiki-dark-font-style:italic">.</span><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic">text</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">())</span></span>
@@ -207,150 +929,436 @@ a:where(.astro-blwjyjpt){position:relative;text-decoration-line:underline;text-d
 <span class="line"></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#82AAFF;font-style:inherit;--shiki-dark-font-style:italic">main</span><span style="color:#24292EFF;--shiki-dark:#D6DEEB">();</span></span>
 <span class="line"></span></code></pre>
-<p>فالخرج سيكون</p>
-<pre class="astro-code astro-code-themes min-light night-owl" style="background-color:#ffffff;--shiki-dark-bg:#011627;color:#24292eff;--shiki-dark:#d6deeb; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Time: 46.136ms</span></span>
+        <p>فالخرج سيكون</p>
+        <pre
+          class="astro-code astro-code-themes min-light night-owl"
+          style="
+            background-color: #ffffff;
+            --shiki-dark-bg: #011627;
+            color: #24292eff;
+            --shiki-dark: #d6deeb;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+          "
+          tabindex="0"
+          data-language="plaintext"
+        ><code><span class="line"><span>Time: 46.136ms</span></span>
 <span class="line"><span>otherTask</span></span>
 <span class="line"><span>Fetch: 376.619ms</span></span>
 <span class="line"><span>Fetched google</span></span>
 <span class="line"><span></span></span></code></pre>
-<p>لاحظ كيف تم تنفيذ المهمة الأخرى قبل أن تنتهي مهمة طلب Google.</p>
-<h2 id="ماذا-عن-القراءة-والكتابة-من-و-على-الملفات">ماذا عن القراءة والكتابة من و على الملفات؟</h2>
-<p>في مثال الكود أعلاه حول طلب Http. فإن العمليات على الشبكة لا تشغل المعالج (Non-Blocking) بطبيعتها (لأن هناك وقت انتظار ريثما تعود النتيجة). أما بالنسبة لعمليات قراءة الملفات أو الكتابة عليها، فتعتبر عادةً عمليات Blocking لأنها تشغل المعالج حتى تكتمل. ولكن كيف يمكن لـ Nodejs أن تقوم بقراءة وكتابة عدة ملفات في نفس الوقت؟</p>
-<p>في الواقع، تعتمد Nodejs على مكتبة داخلية تدعى <code>libuv</code> لإدارة عمليات القراءة والكتابة من الملفات بشكل غير متزامن. عندما تحتاج Nodejs إلى قراءة أو كتابة ملف، يتم إرسال الطلب إلى <code>libuv</code>، التي ترسله بدورها إلى نظام التشغيل. يقوم نظام التشغيل بالقراءة أو الكتابة في (Process) مستقلة عن Nodejs، وعندما ينتهي من القراءة أو الكتابة، تقوم <code>libuv</code> بإرسال إشعار (Event) إلى Nodejs لتتمكن من متابعة العمل على البيانات التي تمت قراءتها أو المكتوبة.</p>
-<p>تقوم Nodejs باستغلال الوقت ريثما تعود النتيجة من <code>libuv</code> بتنفيذ مهام أخرى.</p>
-<h2 id="ما-هو-event-loop">ما هو Event Loop ؟</h2>
-<p>هذا الجزء يعتبر قلب Nodejs وهو ما يجعلها قادرة على تنفيذ عدة مهام في نفس الوقت، وهو الجزء الذي يقوم باستغلال وقت انتظار العمليات الـ (Non-Blocking) لتنفيذ مهام أخرى، وهو أيضاً من يقوم بتشغيل التوابع المرتجعة (Callbacks) لهذه العمليات عندما تعود بالنتيجة.</p>
-<p>هذا الجزء عبارة عن ٦ مراحل يتم تنفيذها بشكل تكراري لا متناهي مرحلةً تلو الأخرى، وهي:</p>
-<h3 id="١-مرحلة-تنفيذ-المؤقتات-timers">١. مرحلة تنفيذ المؤقتات (Timers):</h3>
-<p>في هذه المرحلة يقوم Event Loop بتنفيذ التوابع Functions الموجودة ضمن <code>setTimout</code> و <code>setInterval</code> إن حان وقت تنفيذها.</p>
-<h3 id="٢-مرحلة-تنفيذ-التوابع-المرتجعة-callbacks-المؤجلة">٢. مرحلة تنفيذ التوابع المرتجعة (Callbacks) المؤجلة:</h3>
-<p>التابع المرتجع هو تابع يتم استدعاؤه عند نهاية تنفيذ مهمة غير متزامنة كقراءة ملف لمعالجة نتيجة هذه المهمة.</p>
-<p>في هذه المرحلة يتم تنفيذ التوابع المرتجعة المؤجل تنفيذها من حلقة Event Loop السابقة. غالباً ما تكون هذه التوابع متعلقة ب Nodejs داخلياً وليست من برنامج المستخدم.</p>
-<h3 id="٣-مرحلة-idle-prepare">٣. مرحلة Idle, Prepare:</h3>
-<p>يتم استخدامها داخلياً فقط من Nodejs لتنفيذ أمور لا أعلمها ولم أبحث بها.</p>
-<h3 id="٤-مرحلة-تنفيذ-التوابع-المرتجعة-المتعلية-بالدخل-والخرج-io-callbacks">٤. مرحلة تنفيذ التوابع المرتجعة المتعلية بالدخل والخرج (I/O Callbacks):</h3>
-<p>وتسمى هذه المرحلة Poll وهي المرحلة الأهم في Event Loop حيث أنها تقرر إكمال تنفيذ البرنامج أو الانتظار لحين وصول توابع مرتجعة (Callbacks) جديدة.
-وتعتمد في هذا القرار على إن كان هناك توابع من <code>setTimeout</code> أو <code>setInterval</code> حان وقت تنفيذها. وعلى وجود توابع مرتجعة متلقة بالدخل والخرج I/O Callback تنتظر التنفيذ أو لا. وكذلك على وجود توابع من <code>setImmediate</code> أو لا.</p>
-<p>فعند الدخول في هذه المرحلة:</p>
-<ul>
-<li>في حال لم يكن هناك أي مؤقت حان وقت تنفيذه:</li>
-<li>إن كان هناك توابع مرتجعة متعلقة بالدخل والخرج (I/O Callbacks) فستقوم بتنفيذها كلها.</li>
-<li>إن لم يكن هناك توابع مرتجعة متعلقة بالدخل والخرج (I/O Callbacks) فهناك احماللان:
-<ul>
-<li>إن كان هناك توابع تم استدعاؤها عن طريق <code>setImmediate</code> فستنتهي هذه المرحلة.</li>
-<li>إن لم يكن هناك توابع تم استدعاؤها عن طريق <code>setImmediate</code> فستنتظ هذه المرحلة وصول توابع مرتجعة متعلقة بالدخل والخرج (I/O Callbacks).</li>
-</ul>
-</li>
-<li>في حال كان هناك مؤقتات حان وقت تنفيذها وقد تم تنفيذ جميع التوابع المرتجعة متعلقة بالدخل والخرج (I/O Callbacks) أو لم يكن هناك توابع أصلا فستقوم هذه المرحلة بالعودة للمرحلة الأولى لتنفيذ هذه المؤقتات.</li>
-</ul>
-<h3 id="٥-مرحلة-تنفيذ-توابع-setimmediate">٥. مرحلة تنفيذ توابع setImmediate:</h3>
-<p>تدعى هذه المرحلة Check وتقوم بتنفيذ التوابع التي تم استدعاؤها عن طريق <code>setImmediate</code>.</p>
-<h3 id="٦-مرحلة-تنفيد-التوابع-المرتجعة-المتعلقة-بإغلاق-المهام-close-callbacks">٦. مرحلة تنفيد التوابع المرتجعة المتعلقة بإغلاق المهام Close Callbacks:</h3>
-<p>بعض المهام في Nodejs مثل Read/Write Streams تقوم عند غلقها بإرسال إشعار إغلاق “close” (Event).
-يتم تنفيذ التوابع المرتجعة الخاصة بعمليات الإغلاق هذه في هذه المرحلة.</p>
-<h2 id="الملخص">الملخص</h2>
-<p>تتجلى قوة Nodejs في قدرتها على تنفيذ عمليات الإدخال والإخراج (I/O) بسرعة فائقة وبشكل غير متزامن (Concurrent) بفضل Event Loop. لكنها في نفس الوقت ليست الخيار الأمثل لتنفيذ العمليات الحسابية المتزامنة التي تتطلب استهلاكًا مكثفًا للمعالج، مما قد يؤدي إلى منع Nodejs عن معالجة الطلبات أو المهام الأخرى، نظرًا لاعتمادها على Thread واحدة.</p>
-<h2 id="المراجع">المراجع</h2>
-<ul>
-<li><a href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs#introduction-to-nodejs">Introduction to Nodejs</a></li>
-<li><a href="https://nodejs.org/en/learn/asynchronous-work/overview-of-blocking-vs-non-blocking">Overview of Blocking vs Non-Blocking</a></li>
-<li><a href="https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick">Nodejs Event Loop</a></li>
-</ul> </article> <ul class="my-8 astro-vj4tpspi"> <li class="inline-block ltr my-1 underline-offset-4 astro-blwjyjpt"> <a href="/tags/nodejs/" class="text-sm pr-2 group astro-blwjyjpt" data-astro-transition-scope="astro-36ssibgs-2"> <svg xmlns="http://www.w3.org/2000/svg" class=" scale-75 astro-blwjyjpt"><path d="M16.018 3.815 15.232 8h-4.966l.716-3.815-1.964-.37L8.232 8H4v2h3.857l-.751 4H3v2h3.731l-.714 3.805 1.965.369L8.766 16h4.966l-.714 3.805 1.965.369.783-4.174H20v-2h-3.859l.751-4H21V8h-3.733l.716-3.815-1.965-.37zM14.106 14H9.141l.751-4h4.966l-.752 4z" class="astro-blwjyjpt"></path> </svg>
-&nbsp;<span class="astro-blwjyjpt">nodejs</span> </a> </li> <li class="inline-block ltr my-1 underline-offset-4 astro-blwjyjpt"> <a href="/tags/javascript/" class="text-sm pr-2 group astro-blwjyjpt" data-astro-transition-scope="astro-36ssibgs-3"> <svg xmlns="http://www.w3.org/2000/svg" class=" scale-75 astro-blwjyjpt"><path d="M16.018 3.815 15.232 8h-4.966l.716-3.815-1.964-.37L8.232 8H4v2h3.857l-.751 4H3v2h3.731l-.714 3.805 1.965.369L8.766 16h4.966l-.714 3.805 1.965.369.783-4.174H20v-2h-3.859l.751-4H21V8h-3.733l.716-3.815-1.965-.37zM14.106 14H9.141l.751-4h4.966l-.752 4z" class="astro-blwjyjpt"></path> </svg>
-&nbsp;<span class="astro-blwjyjpt">javascript</span> </a> </li>  </ul> <div class="flex flex-col-reverse items-center justify-between gap-6 sm:flex-row-reverse sm:items-end sm:gap-4 astro-vj4tpspi"> <button id="back-to-top" class="focus-outline whitespace-nowrap py-1 hover:opacity-75 astro-vj4tpspi"> <span class="astro-vj4tpspi">للأعلى</span> <svg xmlns="http://www.w3.org/2000/svg" class="rotate-90 astro-vj4tpspi"> <path d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z" class="astro-vj4tpspi"></path> </svg> </button> <div class="social-icons astro-wkojbtzc"> <span class="italic astro-wkojbtzc">شارك المقالة على:</span> <div class="text-center astro-wkojbtzc"> <a href="https://wa.me/?text=https://rashadkokash.com/posts/nodejs-event-loop/" class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc" title="شارك على WhatsApp"> <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="icon-tabler"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
-      <path d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"></path>
-    </svg> <span class="sr-only astro-wkojbtzc">شارك على WhatsApp</span> </a><a href="https://www.facebook.com/sharer.php?u=https://rashadkokash.com/posts/nodejs-event-loop/" class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc" title="شارك Facebook"> <svg
-    xmlns="http://www.w3.org/2000/svg"
-    class="icon-tabler"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-    <path
-      d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"
-    ></path>
-  </svg> <span class="sr-only astro-wkojbtzc">شارك Facebook</span> </a><a href="https://twitter.com/intent/tweet?url=https://rashadkokash.com/posts/nodejs-event-loop/" class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc" title="شارك على X"> <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="icon-tabler"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"></path>
-    </svg> <span class="sr-only astro-wkojbtzc">شارك على X</span> </a><a href="https://t.me/share/url?url=https://rashadkokash.com/posts/nodejs-event-loop/" class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc" title="شارك على Telegram"> <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="icon-tabler"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        <p>لاحظ كيف تم تنفيذ المهمة الأخرى قبل أن تنتهي مهمة طلب Google.</p>
+        <h2 id="ماذا-عن-القراءة-والكتابة-من-و-على-الملفات">
+          ماذا عن القراءة والكتابة من و على الملفات؟
+        </h2>
+        <p>
+          في مثال الكود أعلاه حول طلب Http. فإن العمليات على الشبكة لا تشغل
+          المعالج (Non-Blocking) بطبيعتها (لأن هناك وقت انتظار ريثما تعود
+          النتيجة). أما بالنسبة لعمليات قراءة الملفات أو الكتابة عليها، فتعتبر
+          عادةً عمليات Blocking لأنها تشغل المعالج حتى تكتمل. ولكن كيف يمكن لـ
+          Nodejs أن تقوم بقراءة وكتابة عدة ملفات في نفس الوقت؟
+        </p>
+        <p>
+          في الواقع، تعتمد Nodejs على مكتبة داخلية تدعى
+          <code>libuv</code> لإدارة عمليات القراءة والكتابة من الملفات بشكل غير
+          متزامن. عندما تحتاج Nodejs إلى قراءة أو كتابة ملف، يتم إرسال الطلب إلى
+          <code>libuv</code>، التي ترسله بدورها إلى نظام التشغيل. يقوم نظام
+          التشغيل بالقراءة أو الكتابة في (Process) مستقلة عن Nodejs، وعندما
+          ينتهي من القراءة أو الكتابة، تقوم <code>libuv</code> بإرسال إشعار
+          (Event) إلى Nodejs لتتمكن من متابعة العمل على البيانات التي تمت
+          قراءتها أو المكتوبة.
+        </p>
+        <p>
+          تقوم Nodejs باستغلال الوقت ريثما تعود النتيجة من
+          <code>libuv</code> بتنفيذ مهام أخرى.
+        </p>
+        <h2 id="ما-هو-event-loop">ما هو Event Loop ؟</h2>
+        <p>
+          هذا الجزء يعتبر قلب Nodejs وهو ما يجعلها قادرة على تنفيذ عدة مهام في
+          نفس الوقت، وهو الجزء الذي يقوم باستغلال وقت انتظار العمليات الـ
+          (Non-Blocking) لتنفيذ مهام أخرى، وهو أيضاً من يقوم بتشغيل التوابع
+          المرتجعة (Callbacks) لهذه العمليات عندما تعود بالنتيجة.
+        </p>
+        <p>
+          هذا الجزء عبارة عن ٦ مراحل يتم تنفيذها بشكل تكراري لا متناهي مرحلةً
+          تلو الأخرى، وهي:
+        </p>
+        <h3 id="١-مرحلة-تنفيذ-المؤقتات-timers">
+          ١. مرحلة تنفيذ المؤقتات (Timers):
+        </h3>
+        <p>
+          في هذه المرحلة يقوم Event Loop بتنفيذ التوابع Functions الموجودة ضمن
+          <code>setTimout</code> و <code>setInterval</code> إن حان وقت تنفيذها.
+        </p>
+        <h3 id="٢-مرحلة-تنفيذ-التوابع-المرتجعة-callbacks-المؤجلة">
+          ٢. مرحلة تنفيذ التوابع المرتجعة (Callbacks) المؤجلة:
+        </h3>
+        <p>
+          التابع المرتجع هو تابع يتم استدعاؤه عند نهاية تنفيذ مهمة غير متزامنة
+          كقراءة ملف لمعالجة نتيجة هذه المهمة.
+        </p>
+        <p>
+          في هذه المرحلة يتم تنفيذ التوابع المرتجعة المؤجل تنفيذها من حلقة Event
+          Loop السابقة. غالباً ما تكون هذه التوابع متعلقة ب Nodejs داخلياً وليست
+          من برنامج المستخدم.
+        </p>
+        <h3 id="٣-مرحلة-idle-prepare">٣. مرحلة Idle, Prepare:</h3>
+        <p>
+          يتم استخدامها داخلياً فقط من Nodejs لتنفيذ أمور لا أعلمها ولم أبحث
+          بها.
+        </p>
+        <h3
+          id="٤-مرحلة-تنفيذ-التوابع-المرتجعة-المتعلية-بالدخل-والخرج-io-callbacks"
+        >
+          ٤. مرحلة تنفيذ التوابع المرتجعة المتعلية بالدخل والخرج (I/O
+          Callbacks):
+        </h3>
+        <p>
+          وتسمى هذه المرحلة Poll وهي المرحلة الأهم في Event Loop حيث أنها تقرر
+          إكمال تنفيذ البرنامج أو الانتظار لحين وصول توابع مرتجعة (Callbacks)
+          جديدة. وتعتمد في هذا القرار على إن كان هناك توابع من
+          <code>setTimeout</code> أو <code>setInterval</code> حان وقت تنفيذها.
+          وعلى وجود توابع مرتجعة متلقة بالدخل والخرج I/O Callback تنتظر التنفيذ
+          أو لا. وكذلك على وجود توابع من <code>setImmediate</code> أو لا.
+        </p>
+        <p>فعند الدخول في هذه المرحلة:</p>
+        <ul>
+          <li>في حال لم يكن هناك أي مؤقت حان وقت تنفيذه:</li>
+          <li>
+            إن كان هناك توابع مرتجعة متعلقة بالدخل والخرج (I/O Callbacks) فستقوم
+            بتنفيذها كلها.
+          </li>
+          <li>
+            إن لم يكن هناك توابع مرتجعة متعلقة بالدخل والخرج (I/O Callbacks)
+            فهناك احماللان:
+            <ul>
+              <li>
+                إن كان هناك توابع تم استدعاؤها عن طريق
+                <code>setImmediate</code> فستنتهي هذه المرحلة.
+              </li>
+              <li>
+                إن لم يكن هناك توابع تم استدعاؤها عن طريق
+                <code>setImmediate</code> فستنتظ هذه المرحلة وصول توابع مرتجعة
+                متعلقة بالدخل والخرج (I/O Callbacks).
+              </li>
+            </ul>
+          </li>
+          <li>
+            في حال كان هناك مؤقتات حان وقت تنفيذها وقد تم تنفيذ جميع التوابع
+            المرتجعة متعلقة بالدخل والخرج (I/O Callbacks) أو لم يكن هناك توابع
+            أصلا فستقوم هذه المرحلة بالعودة للمرحلة الأولى لتنفيذ هذه المؤقتات.
+          </li>
+        </ul>
+        <h3 id="٥-مرحلة-تنفيذ-توابع-setimmediate">
+          ٥. مرحلة تنفيذ توابع setImmediate:
+        </h3>
+        <p>
+          تدعى هذه المرحلة Check وتقوم بتنفيذ التوابع التي تم استدعاؤها عن طريق
+          <code>setImmediate</code>.
+        </p>
+        <h3
+          id="٦-مرحلة-تنفيد-التوابع-المرتجعة-المتعلقة-بإغلاق-المهام-close-callbacks"
+        >
+          ٦. مرحلة تنفيد التوابع المرتجعة المتعلقة بإغلاق المهام Close
+          Callbacks:
+        </h3>
+        <p>
+          بعض المهام في Nodejs مثل Read/Write Streams تقوم عند غلقها بإرسال
+          إشعار إغلاق “close” (Event). يتم تنفيذ التوابع المرتجعة الخاصة بعمليات
+          الإغلاق هذه في هذه المرحلة.
+        </p>
+        <h2 id="الملخص">الملخص</h2>
+        <p>
+          تتجلى قوة Nodejs في قدرتها على تنفيذ عمليات الإدخال والإخراج (I/O)
+          بسرعة فائقة وبشكل غير متزامن (Concurrent) بفضل Event Loop. لكنها في
+          نفس الوقت ليست الخيار الأمثل لتنفيذ العمليات الحسابية المتزامنة التي
+          تتطلب استهلاكًا مكثفًا للمعالج، مما قد يؤدي إلى منع Nodejs عن معالجة
+          الطلبات أو المهام الأخرى، نظرًا لاعتمادها على Thread واحدة.
+        </p>
+        <h2 id="المراجع">المراجع</h2>
+        <ul>
+          <li>
+            <a
+              href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs#introduction-to-nodejs"
+              >Introduction to Nodejs</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://nodejs.org/en/learn/asynchronous-work/overview-of-blocking-vs-non-blocking"
+              >Overview of Blocking vs Non-Blocking</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+              >Nodejs Event Loop</a
+            >
+          </li>
+        </ul>
+      </article>
+      <ul class="my-8 astro-vj4tpspi">
+        <li class="inline-block ltr my-1 underline-offset-4 astro-blwjyjpt">
+          <a
+            href="/tags/nodejs/"
+            class="text-sm pr-2 group astro-blwjyjpt"
+            data-astro-transition-scope="astro-36ssibgs-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="scale-75 astro-blwjyjpt"
+            >
+              <path
+                d="M16.018 3.815 15.232 8h-4.966l.716-3.815-1.964-.37L8.232 8H4v2h3.857l-.751 4H3v2h3.731l-.714 3.805 1.965.369L8.766 16h4.966l-.714 3.805 1.965.369.783-4.174H20v-2h-3.859l.751-4H21V8h-3.733l.716-3.815-1.965-.37zM14.106 14H9.141l.751-4h4.966l-.752 4z"
+                class="astro-blwjyjpt"
+              ></path>
+            </svg>
+            &nbsp;<span class="astro-blwjyjpt">nodejs</span>
+          </a>
+        </li>
+        <li class="inline-block ltr my-1 underline-offset-4 astro-blwjyjpt">
+          <a
+            href="/tags/javascript/"
+            class="text-sm pr-2 group astro-blwjyjpt"
+            data-astro-transition-scope="astro-36ssibgs-3"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="scale-75 astro-blwjyjpt"
+            >
+              <path
+                d="M16.018 3.815 15.232 8h-4.966l.716-3.815-1.964-.37L8.232 8H4v2h3.857l-.751 4H3v2h3.731l-.714 3.805 1.965.369L8.766 16h4.966l-.714 3.805 1.965.369.783-4.174H20v-2h-3.859l.751-4H21V8h-3.733l.716-3.815-1.965-.37zM14.106 14H9.141l.751-4h4.966l-.752 4z"
+                class="astro-blwjyjpt"
+              ></path>
+            </svg>
+            &nbsp;<span class="astro-blwjyjpt">javascript</span>
+          </a>
+        </li>
+      </ul>
+      <div
+        class="flex flex-col-reverse items-center justify-between gap-6 sm:flex-row-reverse sm:items-end sm:gap-4 astro-vj4tpspi"
       >
-        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-        <path d="M15 10l-4 4l6 6l4 -16l-18 7l4 2l2 6l3 -4"></path>
-      </svg> <span class="sr-only astro-wkojbtzc">شارك على Telegram</span> </a><a href="https://pinterest.com/pin/create/button/?url=https://rashadkokash.com/posts/nodejs-event-loop/" class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc" title="شارك على Pinterest"> <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="icon-tabler"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <line x1="8" y1="20" x2="12" y2="11"></line>
-      <path d="M10.7 14c.437 1.263 1.43 2 2.55 2c2.071 0 3.75 -1.554 3.75 -4a5 5 0 1 0 -9.7 1.7"></path>
-      <circle cx="12" cy="12" r="9"></circle>
-    </svg> <span class="sr-only astro-wkojbtzc">شارك على Pinterest</span> </a><a href="mailto:?subject=اقرأ%20هذه%20المقالة&#38;body=https://rashadkokash.com/posts/nodejs-event-loop/" class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc" title="شارك على email"> <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="icon-tabler"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-      <polyline points="3 7 12 13 21 7"></polyline>
-    </svg> <span class="sr-only astro-wkojbtzc">شارك على email</span> </a> </div> </div>  </div> </main> <footer class="mt-auto astro-sz7xmlte"> <div class="max-w-3xl mx-auto px-0"> <hr class="border-skin-line" aria-hidden="true"> </div> <div class="footer-wrapper astro-sz7xmlte"> <div class="social-icons flex astro-upu6fzxr"> <a href="https://github.com/rashadksh" class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr" title=" رشاد كوكش على Github"> <svg
-    xmlns="http://www.w3.org/2000/svg"
-    class="icon-tabler"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-    <path
-      d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"
-    ></path>
-  </svg> <span class="sr-only astro-upu6fzxr"> رشاد كوكش على Github</span> </a><a href="https://www.linkedin.com/in/rashad-kokash" class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr" title="رشاد كوكش على LinkedIn"> <svg
-    xmlns="http://www.w3.org/2000/svg"
-    class="icon-tabler"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-    <line x1="8" y1="11" x2="8" y2="16"></line>
-    <line x1="8" y1="8" x2="8" y2="8.01"></line>
-    <line x1="12" y1="16" x2="12" y2="11"></line>
-    <path d="M16 16v-3a2 2 0 0 0 -4 0"></path>
-  </svg> <span class="sr-only astro-upu6fzxr">رشاد كوكش على LinkedIn</span> </a><a href="mailto:rashadksh@gmail.com" class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr" title="إرسال بريد إلكتروني إلى رشاد كوكش"> <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="icon-tabler"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-      <polyline points="3 7 12 13 21 7"></polyline>
-    </svg> <span class="sr-only astro-upu6fzxr">إرسال بريد إلكتروني إلى رشاد كوكش</span> </a><a href="https://www.youtube.com/@rksh1997" class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr" title="رشاد كوكش على YouTube"> <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="icon-tabler"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
-      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
-    </svg> <span class="sr-only astro-upu6fzxr">رشاد كوكش على YouTube</span> </a> </div>  <div class="copyright-wrapper astro-sz7xmlte"> <span class="astro-sz7xmlte">جميع الحقوق محفوظة</span> <span class="separator astro-sz7xmlte">&nbsp;|&nbsp;</span> <span class="astro-sz7xmlte">رشاد كوكش &#169; 2024</span> </div> </div> </footer>   </body></html>  <script>
+        <button
+          id="back-to-top"
+          class="focus-outline whitespace-nowrap py-1 hover:opacity-75 astro-vj4tpspi"
+        >
+          <span class="astro-vj4tpspi">للأعلى</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="rotate-90 astro-vj4tpspi"
+          >
+            <path
+              d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z"
+              class="astro-vj4tpspi"
+            ></path>
+          </svg>
+        </button>
+        <div class="social-icons astro-wkojbtzc">
+          <span class="italic astro-wkojbtzc">شارك المقالة على:</span>
+          <div class="text-center astro-wkojbtzc">
+            <a
+              href="https://wa.me/?text=https://rashadkokash.com/posts/nodejs-event-loop/"
+              class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc"
+              title="شارك على WhatsApp"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon-tabler"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+                <path
+                  d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"
+                ></path>
+              </svg>
+              <span class="sr-only astro-wkojbtzc">شارك على WhatsApp</span> </a
+            ><a
+              href="https://www.facebook.com/sharer.php?u=https://rashadkokash.com/posts/nodejs-event-loop/"
+              class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc"
+              title="شارك Facebook"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon-tabler"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path
+                  d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"
+                ></path>
+              </svg>
+              <span class="sr-only astro-wkojbtzc">شارك Facebook</span> </a
+            ><a
+              href="https://twitter.com/intent/tweet?url=https://rashadkokash.com/posts/nodejs-event-loop/"
+              class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc"
+              title="شارك على X"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon-tabler"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path
+                  d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"
+                ></path>
+              </svg>
+              <span class="sr-only astro-wkojbtzc">شارك على X</span> </a
+            ><a
+              href="https://t.me/share/url?url=https://rashadkokash.com/posts/nodejs-event-loop/"
+              class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc"
+              title="شارك على Telegram"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon-tabler"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M15 10l-4 4l6 6l4 -16l-18 7l4 2l2 6l3 -4"></path>
+              </svg>
+              <span class="sr-only astro-wkojbtzc">شارك على Telegram</span> </a
+            ><a
+              href="https://pinterest.com/pin/create/button/?url=https://rashadkokash.com/posts/nodejs-event-loop/"
+              class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc"
+              title="شارك على Pinterest"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon-tabler"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <line x1="8" y1="20" x2="12" y2="11"></line>
+                <path
+                  d="M10.7 14c.437 1.263 1.43 2 2.55 2c2.071 0 3.75 -1.554 3.75 -4a5 5 0 1 0 -9.7 1.7"
+                ></path>
+                <circle cx="12" cy="12" r="9"></circle>
+              </svg>
+              <span class="sr-only astro-wkojbtzc">شارك على Pinterest</span> </a
+            ><a
+              href="mailto:?subject=اقرأ%20هذه%20المقالة&#38;body=https://rashadkokash.com/posts/nodejs-event-loop/"
+              class="group inline-block hover:text-skin-accent link-button astro-wkojbtzc"
+              title="شارك على email"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon-tabler"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                <polyline points="3 7 12 13 21 7"></polyline>
+              </svg>
+              <span class="sr-only astro-wkojbtzc">شارك على email</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="mt-auto astro-sz7xmlte">
+      <div class="max-w-3xl mx-auto px-0">
+        <hr class="border-skin-line" aria-hidden="true" />
+      </div>
+      <div class="footer-wrapper astro-sz7xmlte">
+        <div class="social-icons flex astro-upu6fzxr">
+          <a
+            href="https://github.com/rashadksh"
+            class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr"
+            title=" رشاد كوكش على Github"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon-tabler"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+              <path
+                d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"
+              ></path>
+            </svg>
+            <span class="sr-only astro-upu6fzxr">
+              رشاد كوكش على Github</span
+            > </a
+          ><a
+            href="https://www.linkedin.com/in/rashad-kokash"
+            class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr"
+            title="رشاد كوكش على LinkedIn"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon-tabler"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+              <line x1="8" y1="11" x2="8" y2="16"></line>
+              <line x1="8" y1="8" x2="8" y2="8.01"></line>
+              <line x1="12" y1="16" x2="12" y2="11"></line>
+              <path d="M16 16v-3a2 2 0 0 0 -4 0"></path>
+            </svg>
+            <span class="sr-only astro-upu6fzxr"
+              >رشاد كوكش على LinkedIn</span
+            > </a
+          ><a
+            href="mailto:rashadksh@gmail.com"
+            class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr"
+            title="إرسال بريد إلكتروني إلى رشاد كوكش"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon-tabler"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+              <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+              <polyline points="3 7 12 13 21 7"></polyline>
+            </svg>
+            <span class="sr-only astro-upu6fzxr"
+              >إرسال بريد إلكتروني إلى رشاد كوكش</span
+            > </a
+          ><a
+            href="https://www.youtube.com/@rksh1997"
+            class="group inline-block hover:text-skin-accent link-button astro-upu6fzxr"
+            title="رشاد كوكش على YouTube"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon-tabler"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"
+              ></path>
+              <polygon
+                points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"
+              ></polygon>
+            </svg>
+            <span class="sr-only astro-upu6fzxr">رشاد كوكش على YouTube</span>
+          </a>
+        </div>
+        <div class="copyright-wrapper astro-sz7xmlte">
+          <span class="astro-sz7xmlte">جميع الحقوق محفوظة</span>
+          <span class="separator astro-sz7xmlte">&nbsp;|&nbsp;</span>
+          <span class="astro-sz7xmlte">رشاد كوكش &#169; 2024</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+<script>
   /** Create a progress indicator
    *  at the top */
   function createProgressBar() {
