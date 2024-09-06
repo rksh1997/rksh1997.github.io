@@ -60,6 +60,7 @@ export default async (post: CollectionEntry<"blog">) => {
               fontWeight: "bold",
               maxHeight: "84%",
               overflow: "hidden",
+              direction: "rtl",
             }}
           >
             {post.data.title}
