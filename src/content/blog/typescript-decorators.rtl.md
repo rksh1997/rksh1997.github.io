@@ -9,10 +9,7 @@ tags:
   - Design Patterns
   - Typescript
   - Javascript
-description:
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-  incididunt ut labore et dolore magna aliqua. Praesent elementum facilisis leo vel
-  fringilla est
+description: في هذا المقال، سنتناول مفهوم Decorator design pattern، ونستعرض كيف يمكن استخدام الـ Decorators في TypeScript لكتابة كود أكثر تنظيمًا وقابلية للتوسع.
 ---
 
 ## في هذه المقالة
