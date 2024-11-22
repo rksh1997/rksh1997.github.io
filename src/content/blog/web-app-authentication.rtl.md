@@ -1,7 +1,7 @@
 ---
 title: كيف تقوم بعمل مصادقة (Authentication) في مشروعك القادم؟
 author: Rashad Kokash
-pubDatetime: 2024-11-24T04:06:31Z
+pubDatetime: 2024-11-21T10:25:31Z
 slug: wep-app-authentication
 featured: false
 tags:
